@@ -1025,11 +1025,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Lato',
       <div class="mff"><label>Turno / Horario</label>
         <select id="red-turno">
           <option value="">— Sin turno —</option>
-          <option value="Mañana">Mañana</option>
-          <option value="Tarde">Tarde</option>
-          <option value="Noche">Noche</option>
-          <option value="Completo">Día completo</option>
-          <option value="Flexible">Flexible</option>
+          <option value="Regular">Regular (8h · cuota 6–8)</option>
+          <option value="Extra">Extra (horas variables · sin cuota)</option>
         </select>
       </div>
       <div class="mff"><label>Horas/día planificadas</label><input type="number" id="red-horas" placeholder="8" min="1" max="24"></div>
@@ -1820,7 +1817,7 @@ function detectTurnosDelDia(fecha){
     const existing=TURNOS.find(t=>t.editor===editor&&t.fecha===fecha);
     if(!existing){
       const red=REDS.find(r=>r.nombre===editor);
-      const tipoTurno=red?.turno==='Extra'?'extra':'regular';
+      const tipoTurno=red?.turno==='Extra'?'extra':red?.turno==='Regular'?'regular':'regular';
       const horas=tipoTurno==='regular'?8:(red?.horas||0);
       detected.push({
         id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),
@@ -2556,7 +2553,7 @@ function renderRedactores(){
   });
 
   // Turnos distribution
-  const turnMap={};REDS.forEach(r=>turnMap[r.turno||'Sin turno']=(turnMap[r.turno||'Sin turno']||0)+1);
+  const turnMap={};REDS.forEach(r=>turnMap[r.turno||'Sin asignar']=(turnMap[r.turno||'Sin asignar']||0)+1);
   hbars(document.getElementById('red-turnos'),turnMap);
 
   updateDLs();
