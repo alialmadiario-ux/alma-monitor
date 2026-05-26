@@ -595,25 +595,35 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Lato',
   </div>
 
   <!-- RESUMEN DE COMPLETITUD -->
-  <div id="completitud-strip" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"></div>
+  <div id="completitud-strip" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>
+
+  <!-- BARRA EDICIÓN MASIVA -->
+  <div id="bulk-bar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;background:#fff;border:1.5px solid var(--blue);border-radius:10px;margin-bottom:12px">
+    <span id="bulk-count" style="font-size:12px;font-weight:700;color:var(--blue)">0 seleccionados</span>
+    <div style="width:1px;height:20px;background:var(--line)"></div>
+    <select id="bulk-cat" class="isel" style="font-size:12px"><option value="">— Asignar categoría —</option><option>Política</option><option>Economía</option><option>Sociedad</option><option>Ciencia y tecnología</option><option>Medioambiente</option><option>Deportes</option><option>Salud</option><option>Variedades</option><option>Noticias culturales</option></select>
+    <select id="bulk-reg" class="isel" style="font-size:12px"><option value="">— Asignar región —</option><option>AL y Caribe</option><option>Medio Oriente</option><option>Europa</option><option>EEUU-Canadá</option><option>Asia</option><option>África</option><option>Oceanía</option><option>Global</option></select>
+    <select id="bulk-tipo" class="isel" style="font-size:12px"><option value="">— Cambiar tipo —</option><option>Noticias</option><option>Enfoque</option><option>Blog</option><option>Artículos Exclusivos</option><option>Minuto a minuto</option><option>Bloques Min a min</option><option>Arte y Cultura</option><option>Galería</option><option>Video</option><option>Reels</option><option>Podcast</option><option>Caricaturas</option><option>Historietas</option><option>Cartel</option><option>Autores</option><option>Titular UH</option></select>
+    <select id="bulk-cob" class="isel" style="font-size:12px"><option value="">— Asignar cobertura —</option></select>
+    <button onclick="applyBulk()" class="btn-p" style="padding:6px 16px;font-size:12px">Aplicar</button>
+    <div style="width:1px;height:20px;background:var(--line)"></div>
+    <button onclick="bulkDelete()" style="padding:6px 14px;font-size:12px;background:rgba(181,46,28,.08);color:var(--red);border:1px solid rgba(181,46,28,.3);border-radius:7px;cursor:pointer;font-family:'Lato',sans-serif;font-weight:700">🗑 Eliminar seleccionados</button>
+    <button onclick="clearSelection()" class="btn-s" style="padding:6px 12px;font-size:12px">✕ Cancelar</button>
+  </div>
 
   <!-- TABLA PRINCIPAL -->
   <div class="card" style="overflow-x:auto">
     <div class="card-h">
       <span class="card-t" id="all-count">Todos los contenidos</span>
-      <div style="display:flex;align-items:center;gap:10px">
-        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text3)">
-          <span style="width:8px;height:8px;border-radius:2px;background:rgba(181,46,28,.15);border:1px solid rgba(181,46,28,.4);display:inline-block"></span> Campo ausente — haz clic para editar
-        </div>
-        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text3)">
-          <span style="width:8px;height:8px;border-radius:2px;background:rgba(27,112,64,.12);border:1px solid rgba(27,112,64,.4);display:inline-block"></span> Completo
-        </div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text3)">
+        <span style="width:8px;height:8px;border-radius:2px;background:rgba(181,46,28,.15);border:1px solid rgba(181,46,28,.4);display:inline-block"></span> Campo ausente — clic para editar inline
       </div>
     </div>
-    <table class="dt" style="min-width:900px">
+    <table class="dt" style="min-width:960px">
       <thead>
         <tr>
-          <th style="width:24px"></th>
+          <th style="width:32px;padding:6px 8px;text-align:center"><input type="checkbox" id="chk-all" onchange="toggleSelectAll(this.checked)" style="cursor:pointer;width:14px;height:14px" title="Seleccionar todo"></th>
+          <th style="width:16px;text-align:center;color:var(--text3);font-size:10px" title="Completitud">●</th>
           <th>Fecha</th>
           <th>Hora</th>
           <th>Tipo</th>
@@ -624,12 +634,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Lato',
           <th>Vistas</th>
           <th>Elementos</th>
           <th>RRSS</th>
-          <th>Calidad</th>
-          <th style="width:32px"></th>
+          <th>Cal.</th>
+          <th style="width:60px"></th>
         </tr>
       </thead>
       <tbody id="all-body"></tbody>
     </table>
+    <div id="all-pagination" style="padding:12px 0 4px;display:flex;justify-content:center"></div>
   </div>
 </section>
 
@@ -2017,6 +2028,8 @@ function closeInlinePop(){
 // EDICIÓN INLINE Y SELECCIÓN MASIVA
 // ══════════════════════════════════════════
 let selectedIds = new Set();
+let currentPage = 1;
+const PAGE_SIZE = 50;
 
 function inlineUpdate(id, key, val){
   const n=NOTES.find(x=>x.id===id);
@@ -2083,6 +2096,18 @@ function updateBulkBar(){
   }
 }
 
+function bulkDelete(){
+  const cnt=selectedIds.size;
+  if(!cnt) return;
+  if(!confirm('¿Eliminar '+cnt+' contenido'+(cnt!==1?'s':'')+' seleccionado'+(cnt!==1?'s':'')+' ?\n\nEsta acción no se puede deshacer.')) return;
+  NOTES=NOTES.filter(n=>!selectedIds.has(n.id));
+  saveNotes();
+  clearSelection();
+  renderAll();
+  renderPanel();
+  notify(cnt+' contenido'+(cnt!==1?'s':'')+' eliminado'+(cnt!==1?'s':''),'err');
+}
+
 function applyBulk(){
   const cat=document.getElementById('bulk-cat')?.value;
   const reg=document.getElementById('bulk-reg')?.value;
@@ -2107,7 +2132,6 @@ function applyBulk(){
     clearSelection();
     renderAll();
     notify(`✓ ${changed} contenido${changed!==1?'s':''} actualizados`);
-    // Reset selects
     ['bulk-cat','bulk-reg','bulk-tipo','bulk-cob'].forEach(id=>{
       const el=document.getElementById(id);
       if(el) el.selectedIndex=0;
@@ -2115,9 +2139,31 @@ function applyBulk(){
   }
 }
 
+function bulkDelete(){
+  if(!selectedIds.size) return;
+  const cnt=selectedIds.size;
+  if(!confirm(`¿Eliminar ${cnt} contenido${cnt!==1?'s':''}?\n\nEsta acción no se puede deshacer.`)) return;
+  NOTES=NOTES.filter(n=>!selectedIds.has(n.id));
+  saveNotes();
+  clearSelection();
+  renderAll();
+  renderPanel();
+  notify(`${cnt} contenido${cnt!==1?'s':''} eliminados`,'err');
+}
+
 // ══════════════════════════════════════════
 // TODOS LOS CONTENIDOS — con indicadores de completitud
 // ══════════════════════════════════════════
+function goPage(p){
+  const fc=document.getElementById('ff-completo')?.value||'';
+  // Recalculate total for bounds check
+  currentPage=p;
+  renderAll();
+  // Scroll table to top
+  const tb=document.querySelector('#all-body');
+  if(tb) tb.closest('.card')?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
 function filterClear(){
   const el=document.getElementById('ff-completo');
   if(el) el.value='';
@@ -2166,7 +2212,7 @@ function renderAll(){
   let fl=NOTES.filter(n=>{
     if(q && !n.titulo.toLowerCase().includes(q) && !(n.editor||'').toLowerCase().includes(q)) return false;
     if(ft && n.tipo!==ft) return false;
-    if(fe && n.editor!==fe) return false;
+    if(fe && resolveEditorName(n.editor)!==fe) return false;
     return true;
   });
 
@@ -2182,6 +2228,7 @@ function renderAll(){
     case 'completos':   fl=fl.filter(n=>isCompleto(n)); break;
   }
 
+  // Reset to page 1 when filter changes (detected by comparing filter state)
   fl.sort((a,b)=>b.fecha.localeCompare(a.fecha)||(b.hora||'').localeCompare(a.hora||''));
 
   // ── COMPLETITUD STRIP ──
@@ -2210,9 +2257,36 @@ function renderAll(){
       }).join('')}`;
   }
 
-  // ── COUNT ──
+  // ── PAGINATION ──
+  const totalItems=fl.length;
+  const totalPages=Math.max(1,Math.ceil(totalItems/PAGE_SIZE));
+  if(currentPage>totalPages) currentPage=1;
+  const pageStart=(currentPage-1)*PAGE_SIZE;
+  const pageEnd=Math.min(pageStart+PAGE_SIZE,totalItems);
+  const flPage=fl.slice(pageStart,pageEnd);
+
+  // ── COUNT + PAGINATION UI ──
   const countEl=document.getElementById('all-count');
-  if(countEl) countEl.textContent=fl.length+' contenido'+(fl.length!==1?'s':'')+(fc?' · filtro activo':'');
+  if(countEl) countEl.textContent=totalItems+' contenido'+(totalItems!==1?'s':'')+(fc?' · filtro activo':'')+' · mostrando '+(pageStart+1)+'–'+pageEnd;
+
+  // Render pagination bar
+  const pagEl=document.getElementById('all-pagination');
+  if(pagEl){
+    if(totalPages<=1){pagEl.innerHTML='';} 
+    else {
+      let btns='';
+      // Prev
+      btns+=`<button onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''} style="padding:4px 10px;border:1px solid var(--line2);border-radius:5px;background:transparent;cursor:pointer;font-size:12px;color:var(--text2);${currentPage===1?'opacity:.4;cursor:default':''}">‹</button>`;
+      // Pages
+      for(let p=1;p<=totalPages;p++){
+        const active=p===currentPage;
+        btns+=`<button onclick="goPage(${p})" style="padding:4px 10px;border:1px solid ${active?'var(--red)':'var(--line2)'};border-radius:5px;background:${active?'var(--red)':'transparent'};cursor:pointer;font-size:12px;color:${active?'#fff':'var(--text2)'}">${p}</button>`;
+      }
+      // Next
+      btns+=`<button onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''} style="padding:4px 10px;border:1px solid var(--line2);border-radius:5px;background:transparent;cursor:pointer;font-size:12px;color:var(--text2);${currentPage===totalPages?'opacity:.4;cursor:default':''}">›</button>`;
+      pagEl.innerHTML=`<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">${btns}<span style="font-size:11px;color:var(--text3);margin-left:4px">Página ${currentPage} de ${totalPages}</span></div>`;
+    }
+  }
 
   const tb=document.getElementById('all-body');
   if(!fl.length){
@@ -2230,7 +2304,7 @@ function renderAll(){
   }
 
   // ── ROWS ──
-  tb.innerHTML=fl.map(n=>{
+  tb.innerHTML=flPage.map(n=>{
     const ausentes=getAusentes(n);
     const pct=completitudPct(n);
     const indColor=pct>=100?'var(--green)':pct>=70?'var(--amber)':'var(--red)';
@@ -2297,7 +2371,7 @@ function renderAll(){
       </td>
       <td style="padding:4px 6px">${tagT(n.tipo)}</td>
       <td style="padding:4px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;color:var(--text)" title="${n.titulo}" onclick="editNote('${n.id}')">${n.titulo}</td>
-      <td style="padding:4px 8px;font-weight:700;color:var(--text);white-space:nowrap">${n.editor}</td>
+      <td style="padding:4px 8px;font-weight:700;color:var(--text);white-space:nowrap">${resolveEditorName(n.editor)}</td>
       ${ic('cat','',null,[''].concat(CATS))}
       ${ic('reg','',null,[''].concat(REGS))}
       ${ic('vistas','','number')}
