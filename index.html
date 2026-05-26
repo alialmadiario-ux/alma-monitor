@@ -958,13 +958,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Lato',
   <div class="ph"><div><h1>Equipo <em>editorial</em></h1><p>Horarios, metas y productividad</p></div>
     <div class="ph-c">
       <select id="red-mes-fil" class="isel" onchange="renderRedactores()"></select>
-      <button class="btn-p" style="padding:8px 16px;font-size:13px" onclick="openRedModal()">+ Agregar persona</button>
+      <div class="ph-c">
+        <button class="btn-p" style="padding:8px 16px;font-size:13px" onclick="openRedModal()">+ Agregar persona</button>
+        <button class="btn-s" style="padding:8px 14px;font-size:13px" onclick="normalizeAllEditorNames()" title="Aplica los alias definidos a todos los contenidos existentes">⟳ Normalizar nombres existentes</button>
+      </div>
     </div>
   </div>
   <div class="kpis k4" id="kpi-red"></div>
   <div class="card" style="margin-bottom:13px">
     <div class="card-h"><span class="card-t">Equipo — horarios y metas</span></div>
-    <table class="dt"><thead><tr><th>Nombre</th><th>Rol</th><th>Turno</th><th>Horario</th><th class="num">Meta/día</th><th>Estado</th><th class="num">Contenidos mes</th><th class="num">Promedio/día activo</th><th class="num">Cumplimiento</th><th></th></tr></thead><tbody id="red-body"></tbody></table>
+    <table class="dt"><thead><tr><th>Nombre canónico / Alias CMS</th><th>Rol</th><th>Turno</th><th>Horario</th><th class="num">Meta/día</th><th>Estado</th><th class="num">Contenidos mes</th><th class="num">Prom./día activo</th><th class="num">Cumplimiento</th><th></th></tr></thead><tbody id="red-body"></tbody></table>
   </div>
   <div class="cg g2">
     <div class="card"><div class="card-h"><span class="card-t">Productividad vs meta diaria</span></div><div class="cw" style="height:200px"><canvas id="red-prod-c" role="img" aria-label="Productividad por editor"></canvas></div></div>
@@ -1005,6 +1008,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Lato',
       <div class="mff"><label>Hora fin</label><input type="time" id="red-fin" placeholder="16:00"></div>
     </div>
     <div class="mff"><label>Meta diaria de contenidos</label><input type="number" id="red-meta" placeholder="ej: 10" min="0"></div>
+    <div class="mff">
+      <label>Alias del CMS <span style="font-weight:400;color:var(--text3)">(nombres como vienen en los exports, separados por coma)</span></label>
+      <input type="text" id="red-alias" placeholder="ej: Gabriel, Gabriel García, gabriel garcia">
+      <div style="font-size:10px;color:var(--text3);margin-top:3px">Al importar, estos nombres se mapean automáticamente al nombre canónico</div>
+    </div>
     <div class="modal-btns"><button class="mb-s" onclick="closeMod('red-modal')">Cancelar</button><button class="mb-p" onclick="saveRed()">Guardar</button></div>
   </div>
 </div>
@@ -1712,6 +1720,152 @@ function refreshCobSelects(){
   ['f-cob','f-cob-lnk'].forEach(id=>{const e=document.getElementById(id);if(e){const v=e.value;e.innerHTML=opts;e.value=v||'';}});
 }
 
+
+
+// ══════════════════════════════════════════
+// NORMALIZACIÓN DE NOMBRES
+// ══════════════════════════════════════════
+
+// Normaliza un string de nombre: trim, colapsa espacios, title case
+function normalizeName(raw){
+  if(!raw) return '';
+  return raw
+    .trim()
+    .replace(/\s+/g, ' ')                          // colapsa espacios múltiples
+    .replace(/\b(\w)/g, c => c.toUpperCase());    // Title Case
+}
+
+// Resuelve un nombre contra la tabla de alias de REDS
+// Si hay un alias que coincide, devuelve el nombre canónico
+// Si no, devuelve el nombre normalizado
+function resolveEditorName(raw){
+  if(!raw) return '';
+  const norm = normalizeName(raw);
+  const normLow = norm.toLowerCase();
+  for(const r of REDS){
+    if(!r.nombre) continue;
+    // Coincidencia exacta con nombre canónico
+    if(r.nombre.toLowerCase() === normLow) return r.nombre;
+    // Coincidencia con alias
+    const aliases = (r.alias||'').split(',').map(a=>a.trim().toLowerCase()).filter(Boolean);
+    if(aliases.some(a => a === normLow || a === raw.trim().toLowerCase())) return r.nombre;
+  }
+  return norm; // devuelve normalizado si no hay match
+}
+
+
+// Normaliza todos los nombres en NOTES contra la tabla de alias
+function normalizeAllEditorNames(){
+  let changed=0;
+  NOTES.forEach(n=>{
+    const resolved=resolveEditorName(n.editor);
+    if(resolved && resolved!==n.editor){n.editor=resolved;changed++;}
+  });
+  if(changed>0){saveNotes();notify('✓ '+changed+' nombres normalizados');}
+  else notify('Todos los nombres ya están normalizados ✓');
+}
+// ══════════════════════════════════════════
+// EDICIÓN INLINE Y SELECCIÓN MASIVA
+// ══════════════════════════════════════════
+let selectedIds = new Set();
+
+function inlineUpdate(id, key, val){
+  const n=NOTES.find(x=>x.id===id);
+  if(!n) return;
+  // Type coercion
+  if(key==='vistas'||key==='parrafos'||key==='recursos') n[key]=+val||0;
+  else n[key]=val;
+  // Recalculate calidad if relevant
+  if(['elementos','parrafos'].includes(key)) n.calidad=calcQualityIndex(n.elementos,n.parrafos);
+  // Recompute ventana if hora changed
+  if(key==='hora') computeVentanas(n.fecha);
+  saveNotes();
+  // Update the dot indicator for this row without full re-render
+  const row=document.querySelector(`tr[data-id="${id}"]`);
+  if(row){
+    const pct=completitudPct(n);
+    const dot=row.querySelector('div[title]');
+    if(dot){
+      const col=pct>=100?'var(--green)':pct>=70?'var(--amber)':'var(--red)';
+      dot.style.background=col;
+      const aus=getAusentes(n);
+      dot.title=pct+'% completo'+(aus.length?'\nFalta: '+aus.map(k=>CAMPOS_REQUERIDOS.find(c=>c.key===k)?.label||k).join(', '):'');
+    }
+  }
+  // Update strip counts
+  const strip=document.getElementById('completitud-strip');
+  if(strip) renderAll();
+}
+
+function rowCheck(chk){
+  const id=chk.dataset.id;
+  if(chk.checked) selectedIds.add(id);
+  else selectedIds.delete(id);
+  updateBulkBar();
+}
+
+function toggleSelectAll(checked){
+  document.querySelectorAll('.row-chk').forEach(chk=>{
+    chk.checked=checked;
+    const id=chk.dataset.id;
+    if(checked) selectedIds.add(id);
+    else selectedIds.delete(id);
+  });
+  updateBulkBar();
+}
+
+function clearSelection(){
+  selectedIds.clear();
+  document.querySelectorAll('.row-chk').forEach(c=>c.checked=false);
+  const ca=document.getElementById('chk-all');
+  if(ca) ca.checked=false;
+  updateBulkBar();
+}
+
+function updateBulkBar(){
+  const bar=document.getElementById('bulk-bar');
+  const cnt=document.getElementById('bulk-count');
+  if(!bar) return;
+  if(selectedIds.size>0){
+    bar.style.display='flex';
+    cnt.textContent=selectedIds.size+' seleccionado'+(selectedIds.size!==1?'s':'');
+  } else {
+    bar.style.display='none';
+  }
+}
+
+function applyBulk(){
+  const cat=document.getElementById('bulk-cat')?.value;
+  const reg=document.getElementById('bulk-reg')?.value;
+  const tipo=document.getElementById('bulk-tipo')?.value;
+  const cob=document.getElementById('bulk-cob')?.value;
+  if(!cat&&!reg&&!tipo&&!cob){
+    notify('Selecciona al menos un campo para aplicar','err');
+    return;
+  }
+  let changed=0;
+  selectedIds.forEach(id=>{
+    const n=NOTES.find(x=>x.id===id);
+    if(!n) return;
+    if(cat)  n.cat=cat;
+    if(reg)  n.reg=reg;
+    if(tipo) n.tipo=tipo;
+    if(cob)  n.cob=cob;
+    changed++;
+  });
+  if(changed>0){
+    saveNotes();
+    clearSelection();
+    renderAll();
+    notify(`✓ ${changed} contenido${changed!==1?'s':''} actualizados`);
+    // Reset selects
+    ['bulk-cat','bulk-reg','bulk-tipo','bulk-cob'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.selectedIndex=0;
+    });
+  }
+}
+
 // ══════════════════════════════════════════
 // TODOS LOS CONTENIDOS — con indicadores de completitud
 // ══════════════════════════════════════════
@@ -1819,64 +1973,89 @@ function renderAll(){
     return;
   }
 
+  // Populate bulk cobertura select
+  const bulkCob=document.getElementById('bulk-cob');
+  if(bulkCob){
+    const aktiv=COBS.filter(c=>c.estado==='activa');
+    bulkCob.innerHTML='<option value="">— Asignar cobertura —</option>'+aktiv.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+  }
+
   // ── ROWS ──
   tb.innerHTML=fl.map(n=>{
     const ausentes=getAusentes(n);
     const pct=completitudPct(n);
-    const completo=ausentes.length===0;
+    const indColor=pct>=100?'var(--green)':pct>=70?'var(--amber)':'var(--red)';
 
-    // Helper: cell style based on whether field is missing
-    const cs=(key,content,extra='')=>{
+    // Inline editable cell
+    const ic=(key,displayVal,inputType='text',options=null)=>{
       const missing=ausentes.includes(key);
-      const style=missing
-        ?'background:rgba(181,46,28,.07);border-bottom:1.5px solid rgba(181,46,28,.3);cursor:pointer;'
-        :'';
-      const title=missing?`title="Falta: ${CAMPOS_REQUERIDOS.find(c=>c.key===key)?.label} — clic para editar"`:'' ;
-      return `<td style="${style}${extra}" ${title} ${missing?`onclick="editNote('${n.id}')"`:''}>${content}</td>`;
+      const bg=missing?'background:rgba(181,46,28,.06);':'';
+      const border=missing?'border-bottom:1.5px solid rgba(181,46,28,.3);':'';
+      if(options){
+        // Dropdown inline
+        const opts=options.map(o=>`<option value="${o}" ${n[key]===o?'selected':''}>${o||'—'}</option>`).join('');
+        return `<td style="${bg}${border}padding:4px 6px">
+          <select onchange="inlineUpdate('${n.id}','${key}',this.value)"
+            style="font-size:11px;border:none;background:transparent;color:${missing?'rgba(181,46,28,.7)':'var(--text2)'};cursor:pointer;max-width:110px;outline:none;padding:2px">
+            <option value="">${missing?'— sin '+key+' —':'—'}</option>${opts}
+          </select></td>`;
+      }
+      // Text/number inline
+      return `<td style="${bg}${border}padding:4px 6px">
+        <input type="${inputType}" value="${n[key]||''}"
+          onchange="inlineUpdate('${n.id}','${key}',this.value)"
+          onblur="inlineUpdate('${n.id}','${key}',this.value)"
+          placeholder="${missing?'vacío':''}"
+          style="font-size:11px;border:none;background:transparent;color:${missing?'rgba(181,46,28,.7)':'var(--text2)'};width:${inputType==='number'?'60px':'80px'};outline:none;cursor:text;padding:2px"
+        /></td>`;
     };
 
-    // Completeness indicator
-    const indColor=pct>=100?'var(--green)':pct>=70?'var(--amber)':'var(--red)';
-    const ind=`<td style="padding:0 6px;text-align:center">
-      <div title="${pct}% completo${ausentes.length?'\nFalta: '+ausentes.map(k=>CAMPOS_REQUERIDOS.find(c=>c.key===k)?.label).join(', '):''}"
-           style="width:8px;height:8px;border-radius:50%;background:${indColor};margin:0 auto;cursor:default;flex-shrink:0"
-           onclick="editNote('${n.id}')"></div>
-    </td>`;
-
-    // Calidad badge
     const cal=n.calidad||0;
     const calColor=cal>=7?'var(--green)':cal>=4?'var(--amber)':cal>0?'var(--red)':'var(--text3)';
-    const calBadge=cal>0
-      ?`<span style="font-size:11px;font-weight:700;color:${calColor}">${cal}</span>`
-      :`<span style="font-size:10px;color:var(--text3)">—</span>`;
-
-    // Elementos summary
     const elems=(n.elementos||[]);
     const elemBadge=elems.length>0
-      ?`<span style="font-size:11px;color:var(--text2)">${elems.slice(0,3).map(e=>e.length>8?e.slice(0,7)+'…':e).join(', ')}${elems.length>3?' +'+( elems.length-3):''}</span>`
+      ?elems.slice(0,2).map(e=>e.length>7?e.slice(0,6)+'…':e).join(', ')+(elems.length>2?' +'+(elems.length-2):'')
       :'';
+    const rrssBadge=(n.rrss||[]).map(r=>`<span class="tag" style="background:${RRSS_COL[r]||'#888'}18;color:${RRSS_COL[r]||'#888'};font-size:9px;padding:1px 5px">${r[0]}</span>`).join('')||'';
 
-    // RRSS badges
-    const rrssBadge=(n.rrss||[]).map(r=>`<span class="tag" style="background:${RRSS_COL[r]||'#888'}18;color:${RRSS_COL[r]||'#888'};font-size:9px;padding:1px 5px">${r[0]}</span>`).join(' ')||'';
+    const CATS=['Política','Economía','Sociedad','Ciencia y tecnología','Medioambiente','Deportes','Salud','Variedades','Noticias culturales','Creación propia'];
+    const REGS=['AL y Caribe','Medio Oriente','Europa','EEUU-Canadá','Asia','África','Oceanía','Global'];
 
-    return `<tr style="transition:background .15s" onmouseenter="this.style.background='var(--bg)'" onmouseleave="this.style.background=''">
-      ${ind}
-      <td style="white-space:nowrap;color:var(--text3);font-size:12px">${fmtD(n.fecha)}</td>
-      ${cs('hora', n.hora&&n.hora.trim()?`<span style="font-size:11px;color:var(--text2)">${n.hora}</span>`:`<span style="font-size:10px;color:rgba(181,46,28,.6)">sin hora</span>`)}
-      <td>${tagT(n.tipo)}</td>
-      <td class="tdc" style="max-width:230px;cursor:pointer" title="${n.titulo}" onclick="editNote('${n.id}')">${n.titulo}</td>
-      <td style="font-weight:700;color:var(--text);white-space:nowrap">${n.editor}</td>
-      ${cs('cat', n.cat?tagC(n.cat):`<span style="font-size:10px;color:rgba(181,46,28,.6)">sin categoría</span>`)}
-      ${cs('reg', n.reg?`<span class="tag t-gray">${n.reg}</span>`:`<span style="font-size:10px;color:rgba(181,46,28,.6)">sin región</span>`)}
-      ${cs('vistas', n.vistas>0?`<span style="font-weight:700">${n.vistas}</span>`:`<span style="font-size:10px;color:rgba(181,46,28,.6)">sin vistas</span>`,'text-align:right')}
-      ${cs('elementos', elemBadge||`<span style="font-size:10px;color:rgba(181,46,28,.6)">sin elementos</span>`)}
-      ${cs('rrss', rrssBadge||`<span style="font-size:10px;color:rgba(181,46,28,.6)">sin RRSS</span>`)}
-      <td style="text-align:center">${calBadge}</td>
-      <td style="text-align:center">
-        <button onclick="editNote('${n.id}')" title="Editar nota completa"
-          style="width:26px;height:26px;font-size:12px;border:1px solid var(--line2);border-radius:5px;background:transparent;cursor:pointer;color:var(--text2);display:inline-flex;align-items:center;justify-content:center;transition:all .15s"
-          onmouseenter="this.style.background='var(--bg3)';this.style.color='var(--text)'"
-          onmouseleave="this.style.background='transparent';this.style.color='var(--text2)'">✎</button>
+    return `<tr data-id="${n.id}" style="transition:background .12s" onmouseenter="this.style.background='var(--bg)'" onmouseleave="this.style.background=''">
+      <td style="padding:0 6px;text-align:center">
+        <input type="checkbox" class="row-chk" data-id="${n.id}" onchange="rowCheck(this)"
+          style="cursor:pointer;width:14px;height:14px">
+      </td>
+      <td style="padding:0 4px;text-align:center">
+        <div title="${pct}% completo${ausentes.length?'\nFalta: '+ausentes.map(k=>CAMPOS_REQUERIDOS.find(c=>c.key===k)?.label||k).join(', '):' ✓'}"
+          style="width:8px;height:8px;border-radius:50%;background:${indColor};margin:0 auto"></div>
+      </td>
+      <td style="white-space:nowrap;color:var(--text3);font-size:12px;padding:4px 8px">${fmtD(n.fecha)}</td>
+      <td style="padding:4px 4px">
+        <input type="time" value="${n.hora||''}"
+          onchange="inlineUpdate('${n.id}','hora',this.value)"
+          style="font-size:11px;border:none;background:${ausentes.includes('hora')?'rgba(181,46,28,.06)':'transparent'};color:${ausentes.includes('hora')?'rgba(181,46,28,.7)':'var(--text2)'};outline:none;cursor:pointer;width:72px;padding:2px 4px;border-bottom:${ausentes.includes('hora')?'1.5px solid rgba(181,46,28,.3)':'none'}">
+      </td>
+      <td style="padding:4px 6px">${tagT(n.tipo)}</td>
+      <td style="padding:4px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;color:var(--text)" title="${n.titulo}" onclick="editNote('${n.id}')">${n.titulo}</td>
+      <td style="padding:4px 8px;font-weight:700;color:var(--text);white-space:nowrap">${n.editor}</td>
+      ${ic('cat','',null,[''].concat(CATS))}
+      ${ic('reg','',null,[''].concat(REGS))}
+      ${ic('vistas','','number')}
+      <td style="padding:4px 8px;font-size:11px;color:var(--text2);cursor:pointer" onclick="editNote('${n.id}')"
+        title="${elems.length?elems.join(', '):'Sin elementos — clic para editar'}">
+        ${elems.length?elemBadge:`<span style="font-size:10px;color:rgba(181,46,28,.6)">sin elementos</span>`}
+      </td>
+      <td style="padding:4px 8px;cursor:pointer" onclick="editNote('${n.id}')"
+        title="${(n.rrss||[]).length?(n.rrss||[]).join(', '):'Sin RRSS — clic para editar'}">
+        ${rrssBadge||`<span style="font-size:10px;color:rgba(181,46,28,.6)">sin RRSS</span>`}
+      </td>
+      <td style="text-align:center;padding:4px 6px">
+        <span style="font-size:11px;font-weight:700;color:${calColor}">${cal>0?cal:'—'}</span>
+      </td>
+      <td style="padding:4px 6px;text-align:center">
+        <button onclick="editNote('${n.id}')" title="Editar formulario completo"
+          style="width:24px;height:24px;font-size:11px;border:1px solid var(--line2);border-radius:5px;background:transparent;cursor:pointer;color:var(--text2)">✎</button>
       </td>
     </tr>`;
   }).join('');
@@ -2157,8 +2336,11 @@ function renderRedactores(){
     const meta=r.meta||0;
     const cumpl=meta>0?Math.round(cnt/(meta*daysWorked)*100)+'%':'—';
     const cumplColor=meta>0?(cnt/(meta*daysWorked)>=1?'var(--green)':cnt/(meta*daysWorked)>=0.7?'var(--amber)':'var(--red)'):'var(--text3)';
+    const aliasList=(r.alias||'').split(',').map(a=>a.trim()).filter(Boolean);
     return `<tr>
-      <td style="font-weight:700;color:var(--text)">${r.nombre}</td>
+      <td style="font-weight:700;color:var(--text)">${r.nombre}
+        ${aliasList.length?`<div style="font-size:10px;color:var(--text3);font-weight:400;margin-top:2px">alias: ${aliasList.join(', ')}</div>`:''}
+      </td>
       <td><span class="tag t-blue">${r.rol}</span></td>
       <td>${r.turno||'—'}</td>
       <td style="white-space:nowrap">${r.inicio||'—'} – ${r.fin||'—'}</td>
@@ -2191,8 +2373,8 @@ function renderRedactores(){
   updateDLs();
 }
 function openRedModal(){document.getElementById('red-modal').classList.add('open');sv('red-edit-id','');sv('red-nm','');sv('red-rol','Editor/a');sv('red-st','activo');}
-function saveRed(){const nm=gv('red-nm').trim();if(!nm){notify('Nombre obligatorio','err');return;}const eid=gv('red-edit-id');const r={id:eid||Date.now().toString(),nombre:nm,rol:gv('red-rol'),estado:gv('red-st'),turno:gv('red-turno'),horas:gn('red-horas'),inicio:gv('red-inicio'),fin:gv('red-fin'),meta:gn('red-meta')};if(eid){const i=REDS.findIndex(x=>x.id===eid);if(i>=0)REDS[i]=r;notify('Actualizado ✓');}else{REDS.push(r);notify('Persona agregada ✓');}saveReds();closeMod('red-modal');renderRedactores();}
-function editRed(id){const r=REDS.find(x=>x.id===id);if(!r)return;document.getElementById('red-modal').classList.add('open');sv('red-edit-id',r.id);sv('red-nm',r.nombre);sv('red-rol',r.rol);sv('red-st',r.estado);sv('red-turno',r.turno||'');sv('red-horas',r.horas||'');sv('red-inicio',r.inicio||'');sv('red-fin',r.fin||'');sv('red-meta',r.meta||'');}
+function saveRed(){const nm=gv('red-nm').trim();if(!nm){notify('Nombre obligatorio','err');return;}const eid=gv('red-edit-id');const r={id:eid||Date.now().toString(),nombre:nm,rol:gv('red-rol'),estado:gv('red-st'),turno:gv('red-turno'),horas:gn('red-horas'),inicio:gv('red-inicio'),fin:gv('red-fin'),meta:gn('red-meta'),alias:gv('red-alias')};if(eid){const i=REDS.findIndex(x=>x.id===eid);if(i>=0)REDS[i]=r;notify('Actualizado ✓');}else{REDS.push(r);notify('Persona agregada ✓');}saveReds();closeMod('red-modal');renderRedactores();}
+function editRed(id){const r=REDS.find(x=>x.id===id);if(!r)return;document.getElementById('red-modal').classList.add('open');sv('red-edit-id',r.id);sv('red-nm',r.nombre);sv('red-rol',r.rol);sv('red-st',r.estado);sv('red-turno',r.turno||'');sv('red-horas',r.horas||'');sv('red-inicio',r.inicio||'');sv('red-fin',r.fin||'');sv('red-meta',r.meta||'');sv('red-alias',r.alias||'');}
 function delRed(id){if(!confirm('¿Eliminar?'))return;REDS=REDS.filter(r=>r.id!==id);saveReds();renderRedactores();notify('Eliminado','err');}
 
 
