@@ -16,12 +16,16 @@
   --text:#1C1A16;--text2:#68655E;--text3:#A8A49C;
   --red:#B52E1C;--red2:#D44030;
   --green:#1B7040;--amber:#9E6408;--blue:#18588E;--purple:#623CA0;
-  --sidebar:252px;--top:58px;
+  --sidebar:252px;--sidebar-collapsed:52px;--top:58px;
 }
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Lato',sans-serif;font-size:14px;line-height:1.5;overflow:hidden}
-.app{display:grid;grid-template-columns:var(--sidebar) 1fr;grid-template-rows:var(--top) 1fr;height:100vh}
+.app{display:grid;grid-template-columns:var(--sidebar) 1fr;grid-template-rows:var(--top) 1fr;height:100vh;transition:grid-template-columns .22s ease}
+.app.collapsed{grid-template-columns:var(--sidebar-collapsed) 1fr}
 .topbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 20px 0 0;border-bottom:1px solid var(--line);background:#fff;z-index:20}
-.brand{display:flex;align-items:center;width:var(--sidebar);padding:0 18px;border-right:1px solid var(--line);height:100%;flex-shrink:0}
+.brand{display:flex;align-items:center;width:var(--sidebar);padding:0 18px;border-right:1px solid var(--line);height:100%;flex-shrink:0;transition:all .22s ease;overflow:hidden}
+.app.collapsed .brand{width:var(--sidebar-collapsed);padding:0;justify-content:center}
+.app.collapsed .brand-name,.app.collapsed .brand-sub{display:none}
+.app.collapsed .brand-mark{margin-right:0}
 .brand-mark{width:32px;height:32px;border-radius:7px;background:var(--red);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:14px;font-weight:600;color:#fff;margin-right:10px;flex-shrink:0}
 .brand-name{font-family:'Playfair Display',serif;font-size:14px;color:var(--text);line-height:1.2}
 .brand-sub{font-size:10px;color:var(--text3);letter-spacing:.05em;text-transform:uppercase}
@@ -32,7 +36,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Lato',
 .top-right{display:flex;align-items:center;gap:7px;flex-shrink:0}
 .sp{font-size:11px;padding:3px 9px;border-radius:20px;background:var(--bg3);color:var(--text2);border:1px solid var(--line);white-space:nowrap}
 .sp b{color:var(--text);font-weight:700}
-.sidebar{background:var(--bg3);border-right:1px solid var(--line);overflow-y:auto;padding:16px 0}
+.sidebar{background:var(--bg3);border-right:1px solid var(--line);overflow-y:auto;padding:16px 0;transition:all .22s ease;overflow-x:hidden}
+.app.collapsed .sidebar{padding:12px 0}
+.app.collapsed .ns{padding:0}
+.app.collapsed .nl{display:none}
+.app.collapsed .sdv{margin:4px 6px 8px}
+.app.collapsed .ni{padding:10px 0;justify-content:center}
+.app.collapsed .ni span:not(.ni-ic){display:none}
+.app.collapsed .ni-b{display:none}
+.app.collapsed .ni-ic{width:100%;text-align:center;font-size:16px}
 .sidebar::-webkit-scrollbar{width:0}
 .ns{margin-bottom:20px}
 .nl{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;padding:0 16px;margin-bottom:6px}
@@ -206,7 +218,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Lato',
 <body>
 <div class="app">
 <header class="topbar">
-  <div class="brand"><div class="brand-mark">A+</div><div><div class="brand-name">Alma Plus TV</div><div class="brand-sub">Monitor Editorial</div></div></div>
+  <div class="brand">
+    <div class="brand-mark" onclick="toggleSidebar()" style="cursor:pointer;flex-shrink:0" title="Contraer/expandir menú">A+</div>
+    <div style="flex:1;min-width:0"><div class="brand-name">Alma Plus TV</div><div class="brand-sub">Monitor Editorial</div></div>
+    <button onclick="toggleSidebar()" title="Contraer/expandir" style="width:22px;height:22px;border:none;background:transparent;cursor:pointer;color:var(--text3);font-size:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:4px;transition:background .15s" onmouseenter="this.style.background='var(--line)'" onmouseleave="this.style.background='transparent'" id="sidebar-toggle">‹</button>
+  </div>
   <div class="top-nav">
     <button class="tnav" onclick="nav('dashboard')">📊 Dashboard</button>
     <button class="tnav on"  onclick="nav('ingresar')">+ Nuevo contenido</button>
@@ -1712,7 +1728,9 @@ function clearForm(kd){
   sv('f-fecha',fd);
   ['f-cat','f-reg','f-cob','f-vid-plat','f-pod-plat','f-cob-lnk','f-aut-cob'].forEach(id=>{const e=document.getElementById(id);if(e)e.selectedIndex=0;});
   document.querySelectorAll('.chk.on,.rc.on').forEach(c=>{c.classList.remove('on');c.querySelector('.cb').textContent='';});
-  sv('edit-id','');document.getElementById('btn-save').textContent='Guardar contenido →';updateDiaStatus(fd);
+  sv('edit-id','');document.getElementById('btn-save').textContent='Guardar contenido →';
+  const delBtn=document.getElementById('btn-delete-note');
+  if(delBtn) delBtn.style.display='none';updateDiaStatus(fd);
   setTimeout(calcRecursosAuto,50);
 }
 function saveNote(){
@@ -1763,8 +1781,29 @@ function editNote(id){
     document.querySelectorAll('#chks-el .chk').forEach(c=>{const on=(n.elementos||[]).includes(c.dataset.v);c.classList.toggle('on',on);c.querySelector('.cb').textContent=on?'✓':'';});
     document.querySelectorAll('.rc').forEach(c=>{const on=(n.rrss||[]).includes(c.dataset.v);c.classList.toggle('on',on);c.querySelector('.cb').textContent=on?'✓':'';});
     document.getElementById('btn-save').textContent='Actualizar →';
+    // Show delete button when editing
+    let delBtn=document.getElementById('btn-delete-note');
+    if(!delBtn){
+      delBtn=document.createElement('button');
+      delBtn.id='btn-delete-note';
+      delBtn.className='btn-s';
+      delBtn.style.cssText='padding:11px 16px;background:rgba(181,46,28,.08);color:var(--red);border-color:rgba(181,46,28,.3);font-size:13px';
+      delBtn.textContent='🗑 Eliminar';
+      document.querySelector('.btn-row').appendChild(delBtn);
+    }
+    delBtn.style.display='';
+    delBtn.onclick=()=>delNoteConfirm(n.id, n.titulo);
     sv('panel-date',n.fecha);renderPanel();
   },60);
+}
+
+function delNoteConfirm(id, titulo){
+  if(!confirm('¿Eliminar este contenido?\n\n"'+titulo+(titulo.length>=30?'…':'')+'"\n\nEsta acción no se puede deshacer.')) return;
+  NOTES=NOTES.filter(n=>n.id!==id);
+  saveNotes();
+  renderAll();
+  renderPanel();
+  notify('Contenido eliminado','err');
 }
 function delNote(id){if(!confirm('¿Eliminar?'))return;NOTES=NOTES.filter(n=>n.id!==id);saveNotes();renderPanel();renderAll();notify('Eliminado','err');}
 
@@ -1783,11 +1822,30 @@ function renderPanel(){
   el.innerHTML=fl.map(n=>`<div class="nc ${gv('edit-id')===n.id?'ed':''}" onclick="editNote('${n.id}')"><div class="nc-dl" onclick="event.stopPropagation();delNote('${n.id}')">✕</div><div class="nc-top"><span class="nc-tp" style="background:${TIPO_COL[n.tipo]||'#888'}18;color:${TIPO_COL[n.tipo]||'#888'}">${n.tipo||'—'}</span><span class="nc-hr">${n.hora||''}</span></div><div class="nc-ti">${n.titulo}</div><div class="nc-mt">${n.cat?tagC(n.cat):''}<span class="tag t-gray">${n.editor}</span>${n.vistas?`<span class="tag t-gray">${n.vistas}v</span>`:''}</div></div>`).join('');
 }
 function updateDLs(){
-  const eds=[...new Set([...NOTES.map(n=>n.editor),...REDS.filter(r=>r.estado==='activo').map(r=>r.nombre)].filter(Boolean))].sort();
+  // Canonical names: prefer REDS registro, fallback to normalized NOTES names
+  const canonicals=new Set(REDS.filter(r=>r.estado==='activo').map(r=>r.nombre).filter(Boolean));
+  // Add any editor from NOTES not covered by any alias
+  NOTES.forEach(n=>{
+    if(n.editor){
+      const resolved=resolveEditorName(n.editor);
+      canonicals.add(resolved);
+    }
+  });
+  const eds=[...canonicals].sort();
+
+  // datalist for form inputs (canonical names only)
   document.getElementById('dl-editors').innerHTML=eds.map(a=>`<option value="${a}">`).join('');
   document.getElementById('dl-autores').innerHTML=[...new Set(NOTES.map(n=>n.autor).filter(Boolean))].sort().map(a=>`<option value="${a}">`).join('');
-  const edSel=document.getElementById('fe');
-  if(edSel)edSel.innerHTML='<option value="">Todos los editores</option>'+eds.map(e=>`<option value="${e}">${e}</option>`).join('');
+
+  // Filter dropdowns — canonical names only
+  ['fe','dash-editor'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){
+      const cur=el.value;
+      el.innerHTML='<option value="">Todos los editores</option>'+eds.map(e=>`<option value="${e}">${e}</option>`).join('');
+      if(cur) el.value=cur;
+    }
+  });
 }
 function refreshCobSelects(){
   const act=COBS.filter(c=>c.estado==='activa');
@@ -1913,6 +1971,47 @@ function normalizeAllEditorNames(){
   });
   if(changed>0){saveNotes();notify('✓ '+changed+' nombres normalizados');}
   else notify('Todos los nombres ya están normalizados ✓');
+}
+
+
+// ── SIDEBAR TOGGLE ──
+function toggleSidebar(){
+  const app=document.querySelector('.app');
+  const btn=document.getElementById('sidebar-toggle');
+  app.classList.toggle('collapsed');
+  const collapsed=app.classList.contains('collapsed');
+  if(btn) btn.textContent=collapsed?'›':'‹';
+  localStorage.setItem('alma_sidebar_collapsed', collapsed?'1':'0');
+}
+// ── INLINE POPUP HELPERS ──
+function openInlinePop(el, id, key){
+  // Close any open popup first
+  closeInlinePop();
+  const pop=el.parentElement.querySelector('.inline-pop');
+  if(!pop) return;
+  const rect=el.getBoundingClientRect();
+  pop.style.display='block';
+  // Position: below the cell if space, above if near bottom
+  const spaceBelow=window.innerHeight-rect.bottom;
+  if(spaceBelow<230){
+    pop.style.top=(rect.top-pop.offsetHeight-4)+'px';
+  } else {
+    pop.style.top=(rect.bottom+2)+'px';
+  }
+  pop.style.left=rect.left+'px';
+  // Mark as open
+  pop.dataset.open='1';
+  // Close on outside click
+  setTimeout(()=>document.addEventListener('click', closeInlinePopHandler, {once:true}), 10);
+}
+function closeInlinePopHandler(e){
+  if(!e.target.closest('.inline-pop')&&!e.target.closest('td')) closeInlinePop();
+}
+function closeInlinePop(){
+  document.querySelectorAll('.inline-pop[data-open="1"]').forEach(p=>{
+    p.style.display='none';
+    delete p.dataset.open;
+  });
 }
 // ══════════════════════════════════════════
 // EDICIÓN INLINE Y SELECCIÓN MASIVA
@@ -2141,22 +2240,32 @@ function renderAll(){
       const missing=ausentes.includes(key);
       const bg=missing?'background:rgba(181,46,28,.06);':'';
       const border=missing?'border-bottom:1.5px solid rgba(181,46,28,.3);':'';
+      const val=n[key]||'';
       if(options){
-        // Dropdown inline
-        const opts=options.map(o=>`<option value="${o}" ${n[key]===o?'selected':''}>${o||'—'}</option>`).join('');
-        return `<td style="${bg}${border}padding:4px 6px">
-          <select onchange="inlineUpdate('${n.id}','${key}',this.value)"
-            style="font-size:11px;border:none;background:transparent;color:${missing?'rgba(181,46,28,.7)':'var(--text2)'};cursor:pointer;max-width:110px;outline:none;padding:2px">
-            <option value="">${missing?'— sin '+key+' —':'—'}</option>${opts}
-          </select></td>`;
+        // Show current value as clickable badge; click opens mini popup
+        const label=val||'';
+        const missTxt=key==='cat'?'sin cat':key==='reg'?'sin región':'—';
+        const labelStyle=missing
+          ?'font-size:10px;color:rgba(181,46,28,.65);cursor:pointer'
+          :'font-size:11px;color:var(--text2);cursor:pointer';
+        const opts=options.filter(o=>o).map(o=>
+          `<div onclick="inlineUpdate('${n.id}','${key}','${o}');closeInlinePop()" style="padding:6px 12px;cursor:pointer;font-size:12px;white-space:nowrap" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background=''">${o}</div>`
+        ).join('');
+        return `<td style="${bg}${border}padding:4px 8px;position:relative">
+          <span style="${labelStyle}" onclick="openInlinePop(this,'${n.id}','${key}')">${label||missTxt}</span>
+          <div class="inline-pop" data-id="${n.id}" data-key="${key}" style="display:none;position:fixed;background:#fff;border:1px solid var(--line2);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15);z-index:9999;min-width:150px;max-height:220px;overflow-y:auto;padding:4px 0">
+            <div onclick="inlineUpdate('${n.id}','${key}','');closeInlinePop()" style="padding:6px 12px;cursor:pointer;font-size:12px;color:var(--text3)" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background=''">— vacío —</div>
+            ${opts}
+          </div>
+        </td>`;
       }
-      // Text/number inline
-      return `<td style="${bg}${border}padding:4px 6px">
-        <input type="${inputType}" value="${n[key]||''}"
+      // Number/text inline input
+      return `<td style="${bg}${border}padding:4px 8px">
+        <input type="${inputType}" value="${val}"
           onchange="inlineUpdate('${n.id}','${key}',this.value)"
           onblur="inlineUpdate('${n.id}','${key}',this.value)"
-          placeholder="${missing?'vacío':''}"
-          style="font-size:11px;border:none;background:transparent;color:${missing?'rgba(181,46,28,.7)':'var(--text2)'};width:${inputType==='number'?'60px':'80px'};outline:none;cursor:text;padding:2px"
+          placeholder="${missing?'0':''}"
+          style="font-size:11px;border:none;background:transparent;color:${missing?'rgba(181,46,28,.7)':'var(--text2)'};width:${inputType==='number'?'55px':'80px'};outline:none;cursor:text;padding:2px"
         /></td>`;
     };
 
@@ -2204,8 +2313,12 @@ function renderAll(){
         <span style="font-size:11px;font-weight:700;color:${calColor}">${cal>0?cal:'—'}</span>
       </td>
       <td style="padding:4px 6px;text-align:center">
-        <button onclick="editNote('${n.id}')" title="Editar formulario completo"
-          style="width:24px;height:24px;font-size:11px;border:1px solid var(--line2);border-radius:5px;background:transparent;cursor:pointer;color:var(--text2)">✎</button>
+        <div style="display:flex;gap:4px;justify-content:center">
+          <button onclick="editNote('${n.id}')" title="Editar"
+            style="width:24px;height:24px;font-size:11px;border:1px solid var(--line2);border-radius:5px;background:transparent;cursor:pointer;color:var(--text2)">✎</button>
+          <button onclick="delNoteConfirm('${n.id}','${n.titulo.replace(/'/g,'\'').slice(0,30)}')" title="Eliminar"
+            style="width:24px;height:24px;font-size:11px;border:1px solid rgba(181,46,28,.3);border-radius:5px;background:transparent;cursor:pointer;color:var(--red)">✕</button>
+        </div>
       </td>
     </tr>`;
   }).join('');
@@ -3421,6 +3534,12 @@ initWeek();updateStats();updateDLs();refreshCobSelects();renderPanel();
 sTipo(document.querySelector('.tc.sel'));
 updateDiaStatus(todayStr());
 updateSyncUI();
+// Restore sidebar state
+if(localStorage.getItem('alma_sidebar_collapsed')==='1'){
+  document.querySelector('.app').classList.add('collapsed');
+  const btn=document.getElementById('sidebar-toggle');
+  if(btn) btn.textContent='›';
+}
 // Auto-navigate to dashboard on load
 nav('dashboard');
 </script>
