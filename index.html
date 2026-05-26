@@ -371,8 +371,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Lato',
     </div>
   </div>
   <div class="type-selector" id="ts">
-    <div class="tc sel" data-type="Nota"               onclick="sTipo(this)"><div class="tc-ck">✓</div><span class="tc-ic">📰</span><div class="tc-nm">Nota</div></div>
+    <div class="tc sel" data-type="Noticias"           onclick="sTipo(this)"><div class="tc-ck">✓</div><span class="tc-ic">📰</span><div class="tc-nm">Noticias</div></div>
     <div class="tc" data-type="Minuto a minuto"         onclick="sTipo(this)"><div class="tc-ck">✓</div><span class="tc-ic">⚡</span><div class="tc-nm">Min a min</div></div>
+    <div class="tc" data-type="Bloques Min a min"        onclick="sTipo(this)"><div class="tc-ck">✓</div><span class="tc-ic">📦</span><div class="tc-nm">Bloque Min a min</div></div>
     <div class="tc" data-type="Enfoque"                 onclick="sTipo(this)"><div class="tc-ck">✓</div><span class="tc-ic">🔍</span><div class="tc-nm">Enfoque</div></div>
     <div class="tc" data-type="Artículos Exclusivos"    onclick="sTipo(this)"><div class="tc-ck">✓</div><span class="tc-ic">⭐</span><div class="tc-nm">Art. exclusivo</div></div>
     <div class="tc" data-type="Blog"                    onclick="sTipo(this)"><div class="tc-ck">✓</div><span class="tc-ic">✍️</span><div class="tc-nm">Blog</div></div>
@@ -556,7 +557,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Lato',
       <input type="text" id="sq" placeholder="Buscar título o editor…" class="itxt" oninput="renderAll()">
       <select id="ft" class="isel" onchange="renderAll()">
         <option value="">Todos los tipos</option>
-        <option>Nota</option><option>Minuto a minuto</option><option>Enfoque</option><option>Artículos Exclusivos</option>
+        <option>Noticias</option><option>Minuto a minuto</option><option>Bloques Min a min</option><option>Enfoque</option><option>Artículos Exclusivos</option>
         <option>Blog</option><option>Arte y Cultura</option><option>Galería</option><option>Video</option>
         <option>Reels</option><option>Podcast</option><option>Infografías</option><option>Caricaturas</option>
         <option>Historietas</option><option>Cartel</option><option>Autores</option>
@@ -695,6 +696,36 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Lato',
     <div class="card-h"><span class="card-t">Creación por editor/a y tipo</span><span class="card-s" id="ed-periodo"></span></div>
     <table class="dt edt" style="min-width:800px"><thead id="ed-thead"></thead><tbody id="ed-tbody"></tbody></table>
   </div>
+  <!-- PRODUCTIVIDAD -->
+  <div class="card" style="overflow-x:auto;margin-top:13px">
+    <div class="card-h">
+      <span class="card-t">Productividad por editor/a — turnos y cumplimiento</span>
+      <span class="card-s">Regular (R) · Extra (E) · 📅 = ver turnos del período</span>
+    </div>
+    <table class="dt" style="min-width:900px">
+      <thead><tr>
+        <th>Editor/a</th>
+        <th class="num">Días (R+E)</th>
+        <th class="num">Horas</th>
+        <th class="num" style="color:var(--blue)" title="Total en cuota">En cuota</th>
+        <th class="num" title="Noticias">Notic.</th>
+        <th class="num" title="Arte y Cultura">Arte/C.</th>
+        <th class="num" title="Enfoque">Enf.</th>
+        <th class="num" title="Minuto a minuto">Min.</th>
+        <th class="num" title="Bloques Min a min">Bloq.</th>
+        <th class="num" title="Otros contenidos">Otros</th>
+        <th class="num">Total</th>
+        <th class="num">Meta período</th>
+        <th class="num">Cumplimiento</th>
+        <th>Estado</th>
+        <th class="num">Prod./hora</th>
+        <th class="num">Índ. calidad</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="ed-prod-body"></tbody>
+    </table>
+  </div>
+
   <div class="cg g2" style="margin-top:13px">
     <div class="card" style="overflow-x:auto">
       <div class="card-h"><span class="card-t">Alcance temático — notas</span></div>
@@ -1090,6 +1121,31 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Lato',
   </div>
 </div>
 
+<div class="modal-bg" id="turno-modal">
+  <div class="modal" style="width:620px;max-width:96vw">
+    <h2>Turnos — <em id="tm-editor"></em></h2>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:14px">Período: <span id="tm-mes"></span></div>
+
+    <!-- Add manual turno -->
+    <div style="display:flex;gap:8px;align-items:flex-end;padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--line);margin-bottom:14px;flex-wrap:wrap">
+      <div class="mff" style="flex:1;min-width:120px"><label>Fecha</label><input type="date" id="tm-new-fecha"></div>
+      <div class="mff" style="flex:1;min-width:120px"><label>Tipo</label>
+        <select id="tm-new-tipo" style="width:100%;background:var(--bg);border:1px solid var(--line2);border-radius:7px;padding:8px 10px;font-size:13px;color:var(--text)">
+          <option value="regular">Regular (8h)</option>
+          <option value="extra">Extra</option>
+        </select>
+      </div>
+      <div class="mff" style="width:80px"><label>Horas</label><input type="number" id="tm-new-horas" value="8" min="1" max="24"></div>
+      <button class="mb-p" onclick="addTurnoManual()" style="margin-bottom:0">+ Agregar</button>
+    </div>
+
+    <div id="tm-list"></div>
+    <div class="modal-btns" style="margin-top:14px">
+      <button class="mb-s" onclick="closeMod('turno-modal');renderEditores()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <div class="notif" id="notif"></div>
 <script>
 const DK={notes:'alma_notes_v4',cobs:'alma_cobs_v2',reds:'alma_reds_v1',ga:'alma_ga_v1',crit:'alma_criterios_v1'};
@@ -1308,6 +1364,9 @@ function importXLSX(file){
 
         // Detectar tipo de contenido desde nombre de hoja o archivo
         const detectTipo=()=>{
+          // 'Noticias' en el CMS = tipo 'Nota' en el sistema
+          const sn2=[sheetName, file.name||''].map(s=>s.toLowerCase());
+          if(sn2.some(s=>s.includes('noticia'))) return 'Noticias';
           const names=[sheetName, file.name||''].map(s=>s.toLowerCase());
           if(names.some(s=>s.includes('enfoque')))    return 'Enfoque';
           if(names.some(s=>s.includes('blog')))       return 'Blog';
@@ -1324,7 +1383,7 @@ function importXLSX(file){
           if(names.some(s=>s.includes('arte')||s.includes('cultura'))) return 'Arte y Cultura';
           if(names.some(s=>s.includes('minuto')))     return 'Minuto a minuto';
           if(names.some(s=>s.includes('infograf')))   return 'Infografías';
-          return 'Nota'; // por defecto
+          return 'Noticias'; // por defecto
         };
         const tipoDetectado=detectTipo();
 
@@ -1390,7 +1449,22 @@ function importXLSX(file){
 
           const nota={
             id:      Date.now().toString(36)+i+Math.random().toString(36).slice(2,5),
-            tipo:    tipoDetectado,
+            tipo:    (()=>{
+              // Normalize tipo from row if present, else use sheet-detected tipo
+              const rawTipo=getS(row,hrow.findIndex(h=>/^tipo/i.test(h)));
+              if(rawTipo){
+                const t=rawTipo.trim().toLowerCase();
+                if(t==='noticias'||t==='noticia') return 'Noticias';
+                if(t==='minuto a minuto'||t==='minuto') return 'Minuto a minuto';
+                if(t==='artículos exclusivos'||t==='articulos exclusivos') return 'Artículos Exclusivos';
+                const tipos=['Noticias','Minuto a minuto','Enfoque','Artículos Exclusivos','Blog',
+                  'Arte y Cultura','Galería','Video','Reels','Podcast','Infografías',
+                  'Caricaturas','Historietas','Cartel','Autores','Cobertura','Titular UH'];
+                const match=tipos.find(t2=>t2.toLowerCase()===rawTipo.trim().toLowerCase());
+                if(match) return match;
+              }
+              return tipoDetectado;
+            })(),
             fecha:   (() => {
               // Para exports del CMS, cada fila puede tener su propia fecha
               if(C.fecha>=0){
@@ -1487,6 +1561,7 @@ function importCSVPlain(file){
 }
 
 function loadDB(){
+  loadTurnos();
   try{NOTES=JSON.parse(localStorage.getItem(DK.notes)||'[]');}catch(e){NOTES=[];}
   try{COBS=JSON.parse(localStorage.getItem(DK.cobs)||'[]');}catch(e){COBS=[];}
   try{REDS=JSON.parse(localStorage.getItem(DK.reds)||'[]');}catch(e){REDS=[];}
@@ -1507,13 +1582,16 @@ function updateStats(){
   document.getElementById('top-hoy').textContent=NOTES.filter(n=>n.fecha===todayStr()).length;
 }
 const COLORS=['#B52E1C','#18588E','#9E6408','#1B7040','#623CA0','#0E7880','#9E3060','#5A4A28','#2A6EA8','#3A6818','#A05020','#306898'];
-const TIPO_COL={'Nota':'#B52E1C','Minuto a minuto':'#D44030','Enfoque':'#18588E','Artículos Exclusivos':'#9E6408','Blog':'#623CA0','Arte y Cultura':'#9E3060','Galería':'#0E7880','Video':'#A05020','Reels':'#3A6818','Podcast':'#2A8090','Infografías':'#2A6EA8','Caricaturas':'#B07020','Historietas':'#6A3888','Cartel':'#207060','Autores':'#306898','Cobertura':'#2060A8','Titular UH':'#5A4A28','Especial':'#4A4A4A'};
+const TIPO_COL={'Noticias':'#B52E1C','Minuto a minuto':'#D44030','Bloques Min a min':'#E86030','Enfoque':'#18588E','Artículos Exclusivos':'#9E6408','Blog':'#623CA0','Arte y Cultura':'#9E3060','Galería':'#0E7880','Video':'#A05020','Reels':'#3A6818','Podcast':'#2A8090','Infografías':'#2A6EA8','Caricaturas':'#B07020','Historietas':'#6A3888','Cartel':'#207060','Autores':'#306898','Cobertura':'#2060A8','Titular UH':'#5A4A28','Especial':'#4A4A4A'};
 const CAT_COL={'Política':'#18588E','Deportes':'#1B7040','Noticias culturales':'#9E6408','Sociedad':'#623CA0','Economía':'#0E7880','Salud':'#B52E1C','Medioambiente':'#3A6818','Ciencia y tecnología':'#5A4A28','Variedades':'#9E3060','Creación propia':'#306898'};
 const RRSS_COL={'Facebook':'#1552A0','X':'#222222','Telegram':'#1A7BC8','Instagram':'#A0306A'};
 const REDES=['Facebook','X','Telegram','Instagram'];
 const CAT_CRIT_COLS={estructura:'var(--blue)',multimedia:'var(--amber)',distribucion:'var(--purple)',seo:'var(--green)',otros:'var(--text3)'};
 const CAT_CRIT_LABELS={estructura:'Estructura',multimedia:'Multimedia',distribucion:'Distribución',seo:'SEO',otros:'Otros'};
-const TIPO_GROUPS={'Titular UH':['Titular UH'],'Multimediales':['Galería','Video','Reels','Podcast','Infografías','Caricaturas','Historietas','Cartel'],'Notas':['Nota','Minuto a minuto','Arte y Cultura'],'Opinión':['Blog','Artículos Exclusivos'],'Enfoque':['Enfoque'],'Coberturas':['Cobertura'],'Autores':['Autores']};
+// Tipos que cuentan como NOTAS en la cuota de productividad
+const NOTE_TYPES=['Noticias','Arte y Cultura','Enfoque','Minuto a minuto','Bloques Min a min'];
+// Todos los tipos de contenido editorial
+const TIPO_GROUPS={'Titular UH':['Titular UH'],'Multimediales':['Galería','Video','Reels','Podcast','Infografías','Caricaturas','Historietas','Cartel'],'Notas':['Noticias','Minuto a minuto','Arte y Cultura'],'Opinión':['Blog','Artículos Exclusivos'],'Enfoque':['Enfoque'],'Coberturas':['Cobertura'],'Autores':['Autores']};
 function todayStr(){return new Date().toISOString().slice(0,10);}
 function fmtD(s){if(!s)return '';const[y,m,d]=s.split('-');const M=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];return `${+d} ${M[+m-1]}`;}
 function fmtM(s){const M=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];const[y,m]=s.split('-');return `${M[+m-1]} ${y}`;}
@@ -1539,7 +1617,7 @@ function gn(id){const e=document.getElementById(id);return e?+e.value||0:0;}
 function sv(id,v){const e=document.getElementById(id);if(e)e.value=v==null?'':v;}
 
 // TIPO SECTIONS
-const TSECS={'Nota':['sec-metricas','sec-elementos'],'Minuto a minuto':['sec-metricas','sec-elementos'],'Enfoque':['sec-metricas','sec-elementos'],'Artículos Exclusivos':['sec-metricas','sec-elementos'],'Blog':['sec-metricas','sec-elementos'],'Arte y Cultura':['sec-metricas','sec-elementos'],'Titular UH':[],'Infografías':['sec-metricas'],'Video':['sec-video'],'Reels':['sec-video'],'Podcast':['sec-podcast'],'Galería':['sec-galeria'],'Caricaturas':['sec-imagen'],'Historietas':['sec-imagen'],'Cartel':['sec-imagen'],'Autores':['sec-autores'],'Cobertura':['sec-cobertura']};
+const TSECS={'Noticias':['sec-metricas','sec-elementos'],'Minuto a minuto':['sec-metricas','sec-elementos'],'Enfoque':['sec-metricas','sec-elementos'],'Artículos Exclusivos':['sec-metricas','sec-elementos'],'Blog':['sec-metricas','sec-elementos'],'Arte y Cultura':['sec-metricas','sec-elementos'],'Titular UH':[],'Infografías':['sec-metricas'],'Video':['sec-video'],'Reels':['sec-video'],'Podcast':['sec-podcast'],'Galería':['sec-galeria'],'Caricaturas':['sec-imagen'],'Historietas':['sec-imagen'],'Cartel':['sec-imagen'],'Autores':['sec-autores'],'Cobertura':['sec-cobertura']};
 const ASECS=['sec-metricas','sec-elementos','sec-video','sec-podcast','sec-galeria','sec-imagen','sec-autores','sec-cobertura'];
 function sTipo(el){
   document.querySelectorAll('.tc').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');
@@ -1721,6 +1799,81 @@ function refreshCobSelects(){
 }
 
 
+
+
+// ══════════════════════════════════════════
+// GESTIÓN DE TURNOS
+// ══════════════════════════════════════════
+let TURNOS=[]; // {id, editor, fecha, tipo:'regular'|'extra', horas, notas, obs}
+function loadTurnos(){try{TURNOS=JSON.parse(localStorage.getItem('alma_turnos_v1')||'[]');}catch(e){TURNOS=[];}}
+function saveTurnos(){localStorage.setItem('alma_turnos_v1',JSON.stringify(TURNOS));}
+
+// Meta de notas por turno
+const META_MIN=6, META_MAX=8;
+
+// Detecta automáticamente los turnos de un día basándose en publicaciones
+function detectTurnosDelDia(fecha){
+  const dayNotes=NOTES.filter(n=>n.fecha===fecha);
+  const editors=[...new Set(dayNotes.map(n=>n.editor).filter(Boolean))];
+  const detected=[];
+  editors.forEach(editor=>{
+    const existing=TURNOS.find(t=>t.editor===editor&&t.fecha===fecha);
+    if(!existing){
+      const red=REDS.find(r=>r.nombre===editor);
+      const tipoTurno=red?.turno==='Extra'?'extra':'regular';
+      const horas=tipoTurno==='regular'?8:(red?.horas||0);
+      detected.push({
+        id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),
+        editor, fecha,
+        tipo:tipoTurno,
+        horas:+horas||8,
+        notas:dayNotes.filter(n=>n.editor===editor&&NOTE_TYPES.includes(n.tipo)).length,
+        totalContenidos:dayNotes.filter(n=>n.editor===editor).length,
+        obs:'', autoDetected:true
+      });
+    }
+  });
+  return detected;
+}
+
+// Calcula métricas de productividad para un editor en un período
+function calcProductividad(editor, fechas){
+  const ns=NOTES.filter(n=>fechas.includes(n.fecha)&&n.editor===editor);
+  const turnosEd=TURNOS.filter(t=>fechas.includes(t.fecha)&&t.editor===editor);
+  const noticiasCount=ns.filter(n=>n.tipo==='Noticias').length;
+  const arteCultCount=ns.filter(n=>n.tipo==='Arte y Cultura').length;
+  const enfoqueCount=ns.filter(n=>n.tipo==='Enfoque').length;
+  const minaminCount=ns.filter(n=>n.tipo==='Minuto a minuto').length;
+  const bloquesCount=ns.filter(n=>n.tipo==='Bloques Min a min').length;
+  const notasCount=ns.filter(n=>NOTE_TYPES.includes(n.tipo)).length;
+  const otrosCount=ns.filter(n=>!NOTE_TYPES.includes(n.tipo)).length;
+  const totalCount=ns.length;
+  const diasTrabajados=turnosEd.length||[...new Set(ns.map(n=>n.fecha))].length;
+  const horasTotales=turnosEd.reduce((a,t)=>a+(t.horas||8),0)||diasTrabajados*8;
+  const diasReg=turnosEd.filter(t=>t.tipo==='regular').length;
+  const diasExtra=turnosEd.filter(t=>t.tipo==='extra').length;
+  const metaAcum=diasReg*META_MIN; // meta mínima acumulada (solo regulares)
+  const cumplPct=metaAcum>0?Math.round(notasCount/metaAcum*100):null;
+  const avgCalidad=ns.filter(n=>n.calidad>0).length>0
+    ?(ns.reduce((a,n)=>a+(n.calidad||0),0)/ns.filter(n=>n.calidad>0).length).toFixed(1):0;
+  const prodHora=horasTotales>0?(totalCount/horasTotales).toFixed(2):0;
+  return {
+    editor, notasCount, noticiasCount, arteCultCount, enfoqueCount,
+    minaminCount, bloquesCount, otrosCount, totalCount,
+    diasTrabajados, diasReg, diasExtra, horasTotales,
+    metaAcum, cumplPct, avgCalidad, prodHora
+  };
+}
+
+// Semáforo de cumplimiento
+function semaforo(notas, diasReg){
+  if(diasReg===0) return {color:'var(--text3)',label:'Solo extras'};
+  const meta=diasReg*META_MIN;
+  const pct=notas/meta;
+  if(pct>=1)   return {color:'var(--green)', label:'✓ Meta cumplida'};
+  if(pct>=0.7) return {color:'var(--amber)', label:'⚠ Cerca'};
+  return {color:'var(--red)', label:'✗ Por debajo'};
+}
 
 // ══════════════════════════════════════════
 // NORMALIZACIÓN DE NOMBRES
@@ -2092,7 +2245,7 @@ function renderDiario(){
   hbars(document.getElementById('d-cats'),cats,Object.keys(cats).map(k=>CAT_COL[k]||'#888'));
   const regs={};ns.forEach(n=>{if(n.reg)regs[n.reg]=(regs[n.reg]||0)+1;});
   hbars(document.getElementById('d-regs'),regs);
-  const sn=ns.filter(n=>['Nota','Minuto a minuto','Enfoque','Artículos Exclusivos','Blog'].includes(n.tipo));
+  const sn=ns.filter(n=>['Noticias','Minuto a minuto','Enfoque','Artículos Exclusivos','Blog'].includes(n.tipo));
   const hasSubtitulos=n=>['H2','H3','H4','H5'].some(h=>(n.elementos||[]).includes(h));
   qbars(document.getElementById('d-seo'),{'Con subtítulos':sn.filter(n=>hasSubtitulos(n)).length,'H2':sn.filter(n=>(n.elementos||[]).includes('H2')).length,'H3':sn.filter(n=>(n.elementos||[]).includes('H3')).length,'Con enlaces':sn.filter(n=>(n.elementos||[]).includes('Enlaces')).length,'Con listas':sn.filter(n=>(n.elementos||[]).includes('Lista')).length,'Con carrusel':sn.filter(n=>(n.elementos||[]).includes('Carrusel')).length},sn.length||1);
   document.getElementById('d-rrss').innerHTML=REDES.map(r=>{const cnt=ns.filter(n=>(n.rrss||[]).includes(r)).length;return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 11px;background:var(--bg);border-radius:7px;margin-bottom:5px;border:1px solid var(--line)"><div style="display:flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:50%;background:${RRSS_COL[r]};display:inline-block"></span><span style="font-size:12px;color:var(--text2)">${r}</span></div><span style="font-size:20px;font-weight:300">${cnt}</span></div>`;}).join('');
@@ -2147,7 +2300,7 @@ function renderSemanal(){
   const edMap={};ns.forEach(n=>edMap[n.editor]=(edMap[n.editor]||0)+1);
   const sortE=Object.entries(edMap).sort((a,b)=>b[1]-a[1]),maxE=sortE[0]?.[1]||1;
   document.getElementById('w-editors').innerHTML=sortE.map(([nm,cnt],i)=>`<div class="au-row"><div class="av" style="background:${COLORS[i%12]}18;color:${COLORS[i%12]}">${nm.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div><div class="au-nm">${nm}</div><div class="au-bar"><div class="au-bf" style="width:${Math.round(cnt/maxE*100)}%;background:${COLORS[i%12]}"></div></div><div class="au-n">${cnt}</div></div>`).join('');
-  const sn=ns.filter(n=>['Nota','Minuto a minuto','Enfoque','Artículos Exclusivos','Blog'].includes(n.tipo));
+  const sn=ns.filter(n=>['Noticias','Minuto a minuto','Enfoque','Artículos Exclusivos','Blog'].includes(n.tipo));
   qbars(document.getElementById('w-seo'),{'Subtítulos':sn.filter(n=>(n.elementos||[]).includes('Subtítulos')).length,'Enlaces':sn.filter(n=>(n.elementos||[]).includes('Enlaces')).length,'Post RRSS':sn.filter(n=>(n.elementos||[]).includes('Post RRSS')).length},sn.length||1);
   qbars(document.getElementById('w-rrss'),Object.fromEntries(REDES.map(r=>[r,ns.filter(n=>(n.rrss||[]).includes(r)).length])),total||1);
 }
@@ -2169,8 +2322,8 @@ function renderMensual(){
   document.getElementById('kpi-m').innerHTML=kcard('Contenidos',total,'en el mes')+kcard('Vistas totales',tvistas.toLocaleString(),'acumuladas','blue')+kcard('Facebook',fb,'compartidos','blue')+kcard('SEO subtítulos',total?Math.round(sub/total*100)+'%':'—','del total','green');
   const dayTots=allDays.map(d=>NOTES.filter(n=>n.fecha===d).length);
   dc('m');CH['m']=new Chart(document.getElementById('m-c'),{type:'bar',data:{labels:allDays.map(d=>d.slice(8)),datasets:[{data:dayTots,backgroundColor:'rgba(181,46,28,.6)',borderRadius:3}]},options:co({scales:{y:{beginAtZero:true,ticks:{color:'#A8A49C',font:{size:10}},grid:{color:'rgba(0,0,0,.05)'}},x:{ticks:{color:'#A8A49C',font:{size:10},maxTicksLimit:15,autoSkip:true,maxRotation:0},grid:{display:false}}}})});
-  const subP=allDays.map(d=>{const dn=NOTES.filter(n=>n.fecha===d&&['Nota','Enfoque','Artículos Exclusivos','Blog'].includes(n.tipo));return dn.length?Math.round(dn.filter(n=>(n.elementos||[]).includes('Subtítulos')).length/dn.length*100):null;});
-  const enlP=allDays.map(d=>{const dn=NOTES.filter(n=>n.fecha===d&&['Nota','Enfoque','Artículos Exclusivos','Blog'].includes(n.tipo));return dn.length?Math.round(dn.filter(n=>(n.elementos||[]).includes('Enlaces')).length/dn.length*100):null;});
+  const subP=allDays.map(d=>{const dn=NOTES.filter(n=>n.fecha===d&&['Noticias','Enfoque','Artículos Exclusivos','Blog'].includes(n.tipo));return dn.length?Math.round(dn.filter(n=>(n.elementos||[]).includes('Subtítulos')).length/dn.length*100):null;});
+  const enlP=allDays.map(d=>{const dn=NOTES.filter(n=>n.fecha===d&&['Noticias','Enfoque','Artículos Exclusivos','Blog'].includes(n.tipo));return dn.length?Math.round(dn.filter(n=>(n.elementos||[]).includes('Enlaces')).length/dn.length*100):null;});
   dc('mseo');CH['mseo']=new Chart(document.getElementById('m-seo-c'),{type:'line',data:{labels:allDays.map(d=>d.slice(8)),datasets:[{label:'Subtítulos %',data:subP,borderColor:'#1B7040',backgroundColor:'rgba(27,112,64,.06)',tension:.4,fill:true,pointRadius:2,spanGaps:true},{label:'Enlaces %',data:enlP,borderColor:'#18588E',backgroundColor:'rgba(24,88,142,.06)',tension:.4,fill:true,pointRadius:2,borderDash:[4,3],spanGaps:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#68655E',font:{size:11}}}},scales:{y:{min:0,max:100,ticks:{color:'#A8A49C',font:{size:10},callback:v=>v+'%'},grid:{color:'rgba(0,0,0,.05)'}},x:{ticks:{color:'#A8A49C',font:{size:10},maxTicksLimit:15,autoSkip:true,maxRotation:0},grid:{display:false}}}}});
   const tipos={};ns.forEach(n=>tipos[n.tipo||'?']=(tipos[n.tipo||'?']||0)+1);
   const tt=Object.values(tipos).reduce((a,b)=>a+b,0)||1;
@@ -2180,7 +2333,7 @@ function renderMensual(){
   hbars(document.getElementById('m-cats'),cats,Object.keys(cats).map(k=>CAT_COL[k]||'#888'));
   const regs={};ns.forEach(n=>{if(n.reg)regs[n.reg]=(regs[n.reg]||0)+1;});
   hbars(document.getElementById('m-regs'),regs);
-  const TIPOS_O=['Titular UH','Nota','Arte y Cultura','Minuto a minuto','Artículos Exclusivos','Blog','Enfoque','Galería','Caricaturas','Historietas','Infografías','Video','Reels','Autores','Podcast','Cobertura','Especial'];
+  const TIPOS_O=['Titular UH','Noticias','Arte y Cultura','Minuto a minuto','Artículos Exclusivos','Blog','Enfoque','Galería','Caricaturas','Historietas','Infografías','Video','Reels','Autores','Podcast','Cobertura','Especial'];
   document.getElementById('m-tipo-body').innerHTML=TIPOS_O.map(t=>{const tn=ns.filter(n=>n.tipo===t),cnt=tn.length,vis=tn.reduce((a,n)=>a+(n.vistas||0),0),avg=cnt?(vis/cnt).toFixed(2):0;return cnt?`<tr><td>${t}</td><td class="num">${cnt}</td><td class="num">${vis}</td><td class="num">${avg}</td></tr>`:''}).join('')+`<tr class="tr-tot"><td>TOTAL</td><td class="num">${total}</td><td class="num">${tvistas}</td><td class="num">${total?(tvistas/total).toFixed(2):0}</td></tr>`;
 }
 
@@ -2200,15 +2353,15 @@ function renderEditores(){
   const tiposP=[...new Set(ns.map(n=>n.tipo).filter(Boolean))].sort();
   document.getElementById('ed-thead').innerHTML=`<tr><th>Editor/a</th><th class="num">TOTAL</th>${tiposP.map(t=>`<th class="num" title="${t}">${t.length>9?t.slice(0,8)+'…':t}</th>`).join('')}</tr>`;
   document.getElementById('ed-tbody').innerHTML=editors.map(e=>{const en=ns.filter(n=>n.editor===e);return `<tr><td>${e}</td><td class="num">${en.length}</td>${tiposP.map(t=>`<td class="num" style="color:var(--text2)">${en.filter(n=>n.tipo===t).length||''}</td>`).join('')}</tr>`;}).join('')+`<tr class="tr-tot"><td>TOTAL</td><td class="num">${ns.length}</td>${tiposP.map(t=>`<td class="num">${ns.filter(n=>n.tipo===t).length}</td>`).join('')}</tr>`;
-  document.getElementById('ed-tem-body').innerHTML=editors.map(e=>{const notas=ns.filter(n=>n.editor===e&&['Nota','Minuto a minuto','Arte y Cultura'].includes(n.tipo));const tot=notas.length,pol=notas.filter(n=>n.cat==='Política').length,dep=notas.filter(n=>n.cat==='Deportes').length,cul=notas.filter(n=>n.cat==='Noticias culturales').length,soc=notas.filter(n=>n.cat==='Sociedad').length,eco=notas.filter(n=>n.cat==='Economía').length;return `<tr><td style="font-weight:700;color:var(--text)">${e}</td><td class="num">${tot}</td><td class="num">${pol||''}</td><td class="num">${dep||''}</td><td class="num">${cul||''}</td><td class="num">${soc||''}</td><td class="num">${eco||''}</td><td class="num">${tot-pol-dep-cul-soc-eco||''}</td></tr>`;}).join('');
+  document.getElementById('ed-tem-body').innerHTML=editors.map(e=>{const notas=ns.filter(n=>n.editor===e&&['Noticias','Minuto a minuto','Arte y Cultura'].includes(n.tipo));const tot=notas.length,pol=notas.filter(n=>n.cat==='Política').length,dep=notas.filter(n=>n.cat==='Deportes').length,cul=notas.filter(n=>n.cat==='Noticias culturales').length,soc=notas.filter(n=>n.cat==='Sociedad').length,eco=notas.filter(n=>n.cat==='Economía').length;return `<tr><td style="font-weight:700;color:var(--text)">${e}</td><td class="num">${tot}</td><td class="num">${pol||''}</td><td class="num">${dep||''}</td><td class="num">${cul||''}</td><td class="num">${soc||''}</td><td class="num">${eco||''}</td><td class="num">${tot-pol-dep-cul-soc-eco||''}</td></tr>`;}).join('');
   const REGS_L=['AL y Caribe','Medio Oriente','Europa','EEUU-Canadá','Asia','Global'];
-  document.getElementById('ed-reg-body').innerHTML=editors.map(e=>{const notas=ns.filter(n=>n.editor===e&&['Nota','Minuto a minuto'].includes(n.tipo));return `<tr><td style="font-weight:700;color:var(--text)">${e}</td><td class="num">${notas.length}</td>${REGS_L.map(r=>`<td class="num">${notas.filter(n=>n.reg===r).length||''}</td>`).join('')}</tr>`;}).join('');
+  document.getElementById('ed-reg-body').innerHTML=editors.map(e=>{const notas=ns.filter(n=>n.editor===e&&['Noticias','Minuto a minuto'].includes(n.tipo));return `<tr><td style="font-weight:700;color:var(--text)">${e}</td><td class="num">${notas.length}</td>${REGS_L.map(r=>`<td class="num">${notas.filter(n=>n.reg===r).length||''}</td>`).join('')}</tr>`;}).join('');
 
   // CALIDAD TABLE — like screenshot
   const CATS_CAL=['Arte y Cultura','Política','Ciencia y tecnología','Medioambiente','Sociedad','Economía','Deportes','Salud','Variedades'];
   document.getElementById('ed-calidad-body').innerHTML=editors.map(e=>{
     const en=ns.filter(n=>n.editor===e);
-    const noteTypes=['Nota','Minuto a minuto','Arte y Cultura','Enfoque','Blog','Artículos Exclusivos'];
+    const noteTypes=['Noticias','Minuto a minuto','Arte y Cultura','Enfoque','Blog','Artículos Exclusivos'];
     const notas=en.filter(n=>noteTypes.includes(n.tipo));
     const totalNot=notas.length;
     const catCnts=CATS_CAL.map(cat=>notas.filter(n=>n.cat===cat).length);
@@ -2223,7 +2376,7 @@ function renderEditores(){
     return `<tr>
       <td style="font-weight:700;color:var(--text)">${e}</td>
       <td class="num">${totalNot}</td>
-      ${catCnts.map((v,i)=>`<td class="num" style="${v>0?'background:rgba(27,112,64,.07);font-weight:700':''}">${v||''}</td>`).join('')}
+      ${catCnts.map((v)=>`<td class="num" style="${v>0?'background:rgba(27,112,64,.07);font-weight:700':''}">${v||''}</td>`).join('')}
       <td class="num" style="${minMin>0?'background:rgba(24,88,142,.07);font-weight:700':''}">${minMin||''}</td>
       <td class="num" style="${enfoq>0?'background:rgba(98,60,160,.07);font-weight:700':''}">${enfoq||''}</td>
       <td class="num" style="font-weight:700">${totalEd}</td>
@@ -2231,7 +2384,43 @@ function renderEditores(){
       <td class="num" style="background:${menos2Color};color:${menos2>0?'var(--red)':''};font-weight:${menos2>0?'700':'400'}">${menos2||''}</td>
       <td class="num" style="color:${promColor};font-weight:700">${prom}</td>
     </tr>`;
-  }).join('')+`<tr class="tr-tot"><td>TOTAL</td><td class="num">${ns.filter(n=>['Nota','Minuto a minuto','Arte y Cultura','Enfoque','Blog','Artículos Exclusivos'].includes(n.tipo)).length}</td>${CATS_CAL.map(cat=>`<td class="num">${ns.filter(n=>n.cat===cat).length||''}</td>`).join('')}<td class="num">${ns.filter(n=>n.tipo==='Minuto a minuto').length||''}</td><td class="num">${ns.filter(n=>n.tipo==='Enfoque').length||''}</td><td class="num">${ns.length}</td><td class="num">${ns.reduce((a,n)=>a+(n.recursos||0),0)}</td><td class="num">${ns.filter(n=>n.recursos<2&&['Nota','Minuto a minuto','Arte y Cultura','Enfoque','Blog','Artículos Exclusivos'].includes(n.tipo)).length||''}</td><td class="num">${ns.length>0?(ns.reduce((a,n)=>a+(n.recursos||0),0)/ns.length).toFixed(1):0}</td></tr>`;
+  }).join('')+`<tr class="tr-tot"><td>TOTAL</td><td class="num">${ns.filter(n=>['Noticias','Minuto a minuto','Arte y Cultura','Enfoque','Blog','Artículos Exclusivos'].includes(n.tipo)).length}</td>${CATS_CAL.map(cat=>`<td class="num">${ns.filter(n=>n.cat===cat).length||''}</td>`).join('')}<td class="num">${ns.filter(n=>n.tipo==='Minuto a minuto').length||''}</td><td class="num">${ns.filter(n=>n.tipo==='Enfoque').length||''}</td><td class="num">${ns.length}</td><td class="num">${ns.reduce((a,n)=>a+(n.recursos||0),0)}</td><td class="num">${ns.filter(n=>n.recursos<2&&['Noticias','Minuto a minuto','Arte y Cultura','Enfoque','Blog','Artículos Exclusivos'].includes(n.tipo)).length||''}</td><td class="num">${ns.length>0?(ns.reduce((a,n)=>a+(n.recursos||0),0)/ns.length).toFixed(1):0}</td></tr>`;
+
+  // ── PRODUCTIVIDAD POR EDITOR ──
+  const allDates=[...new Set(ns.map(n=>n.fecha))];
+  // Auto-detect turnos for this period
+  allDates.forEach(fecha=>{
+    const detected=detectTurnosDelDia(fecha);
+    detected.forEach(t=>{TURNOS.push(t);});
+    if(detected.length) saveTurnos();
+  });
+
+  const prodData=editors.map(e=>calcProductividad(e,[...new Set(ns.map(n=>n.fecha))]));
+  const prodEl=document.getElementById('ed-prod-body');
+  if(prodEl){
+    prodEl.innerHTML=prodData.map(p=>{
+      const sem=semaforo(p.notasCount,p.diasReg);
+      return `<tr>
+        <td style="font-weight:700;color:var(--text)">${p.editor}</td>
+        <td class="num">${p.diasTrabajados}<span style="font-size:10px;color:var(--text3)"> (${p.diasReg}R+${p.diasExtra}E)</span></td>
+        <td class="num">${p.horasTotales}h</td>
+        <td class="num" style="font-weight:700;color:var(--blue)" title="Total en cuota">${p.notasCount}</td>
+        <td class="num" title="Noticias">${p.noticiasCount}</td>
+        <td class="num" title="Arte y Cultura">${p.arteCultCount}</td>
+        <td class="num" title="Enfoque">${p.enfoqueCount}</td>
+        <td class="num" title="Min a min (notas)">${p.minaminCount}</td>
+        <td class="num" title="Bloques Min a min">${p.bloquesCount}</td>
+        <td class="num" title="Otros contenidos">${p.otrosCount}</td>
+        <td class="num" style="font-weight:700">${p.totalCount}</td>
+        <td class="num">${p.metaAcum>0?p.metaAcum+'–'+(p.diasReg*META_MAX):'—'}</td>
+        <td class="num" style="font-weight:700;color:${sem.color}">${p.cumplPct!=null?p.cumplPct+'%':'—'}</td>
+        <td class="num" style="color:${sem.color}">${sem.label}</td>
+        <td class="num">${p.prodHora}</td>
+        <td class="num" style="color:${+p.avgCalidad>=7?'var(--green)':+p.avgCalidad>=4?'var(--amber)':'var(--text3)'}">${p.avgCalidad||'—'}</td>
+        <td><button onclick="openTurnoModal('${p.editor}','${mes}')" class="ic-btn" title="Ver/editar turnos">📅</button></td>
+      </tr>`;
+    }).join('');
+  }
 }
 
 // TIPOS
@@ -2252,13 +2441,13 @@ function renderTipos(){
 
 // CALIDAD
 function renderCalidad(){
-  const sn=NOTES.filter(n=>['Nota','Minuto a minuto','Enfoque','Artículos Exclusivos','Blog'].includes(n.tipo));
+  const sn=NOTES.filter(n=>['Noticias','Minuto a minuto','Enfoque','Artículos Exclusivos','Blog'].includes(n.tipo));
   const total=sn.length,sub=sn.filter(n=>(n.elementos||[]).includes('Subtítulos')).length,enl=sn.filter(n=>(n.elementos||[]).includes('Enlaces')).length,prr=sn.filter(n=>(n.elementos||[]).includes('Post RRSS')).length,avgR=total?(sn.reduce((a,n)=>a+n.recursos,0)/total).toFixed(1):0;
   const conSub=sn.filter(n=>['H2','H3','H4','H5'].some(h=>(n.elementos||[]).includes(h))).length;
   document.getElementById('kpi-cal').innerHTML=kcard('Con subtítulos',total?Math.round(conSub/total*100)+'%':'—',conSub+' notas','green')+kcard('Con enlaces',total?Math.round(enl/total*100)+'%':'—',enl+' notas','blue')+kcard('Post RRSS',total?Math.round(prr/total*100)+'%':'—','en notas','amber')+kcard('Recursos/nota',avgR,'promedio');
   const days=[...new Set(NOTES.map(n=>n.fecha))].sort(),lbl=days.map(d=>fmtD(d));
-  const calcP=key=>days.map(d=>{const dn=NOTES.filter(n=>n.fecha===d&&['Nota','Enfoque','Artículos Exclusivos','Blog'].includes(n.tipo));return dn.length?Math.round(dn.filter(n=>(n.elementos||[]).includes(key)).length/dn.length*100):0;});
-  const calcPAny=keys=>days.map(d=>{const dn=NOTES.filter(n=>n.fecha===d&&['Nota','Enfoque','Artículos Exclusivos','Blog'].includes(n.tipo));return dn.length?Math.round(dn.filter(n=>keys.some(k=>(n.elementos||[]).includes(k))).length/dn.length*100):0;});
+  const calcP=key=>days.map(d=>{const dn=NOTES.filter(n=>n.fecha===d&&['Noticias','Enfoque','Artículos Exclusivos','Blog'].includes(n.tipo));return dn.length?Math.round(dn.filter(n=>(n.elementos||[]).includes(key)).length/dn.length*100):0;});
+  const calcPAny=keys=>days.map(d=>{const dn=NOTES.filter(n=>n.fecha===d&&['Noticias','Enfoque','Artículos Exclusivos','Blog'].includes(n.tipo));return dn.length?Math.round(dn.filter(n=>keys.some(k=>(n.elementos||[]).includes(k))).length/dn.length*100):0;});
   dc('calsub');CH['calsub']=new Chart(document.getElementById('cal-sub'),{type:'line',data:{labels:lbl,datasets:[{data:calcP('Subtítulos'),borderColor:'#1B7040',backgroundColor:'rgba(27,112,64,.07)',tension:.4,fill:true,pointRadius:3}]},options:co({scales:{y:{min:0,max:100,ticks:{color:'#A8A49C',callback:v=>v+'%'},grid:{color:'rgba(0,0,0,.05)'}},x:{ticks:{color:'#A8A49C'},grid:{display:false}}}})});
   dc('calenl');CH['calenl']=new Chart(document.getElementById('cal-enl'),{type:'line',data:{labels:lbl,datasets:[{data:calcP('Enlaces'),borderColor:'#18588E',backgroundColor:'rgba(24,88,142,.07)',tension:.4,fill:true,pointRadius:3}]},options:co({scales:{y:{min:0,max:100,ticks:{color:'#A8A49C',callback:v=>v+'%'},grid:{color:'rgba(0,0,0,.05)'}},x:{ticks:{color:'#A8A49C'},grid:{display:false}}}})});
   hbars(document.getElementById('cal-rec'),Object.fromEntries(days.map(d=>{const dn=NOTES.filter(n=>n.fecha===d);return[fmtD(d),dn.length?+(dn.reduce((a,n)=>a+n.recursos,0)/dn.length).toFixed(1):0];})));
@@ -2404,7 +2593,7 @@ function renderDashboard(){
   const fbCnt=ns.filter(n=>(n.rrss||[]).includes('Facebook')).length;
   const avgCal=total>0?(ns.filter(n=>n.calidad>0).reduce((a,n)=>a+(n.calidad||0),0)/Math.max(1,ns.filter(n=>n.calidad>0).length)).toFixed(1):0;
   const avgRec=total>0?(ns.reduce((a,n)=>a+(n.recursos||0),0)/total).toFixed(1):0;
-  const menos2=ns.filter(n=>n.recursos<2&&['Nota','Minuto a minuto','Arte y Cultura','Enfoque','Blog','Artículos Exclusivos'].includes(n.tipo)).length;
+  const menos2=ns.filter(n=>n.recursos<2&&['Noticias','Minuto a minuto','Arte y Cultura','Enfoque','Blog','Artículos Exclusivos'].includes(n.tipo)).length;
 
   document.getElementById('dash-kpis').innerHTML=
     kcard('Contenidos',total,mes?fmtM(mes):'período completo','red')+
@@ -2459,7 +2648,7 @@ function renderDashboard(){
   });
 
   // SEO quality bars
-  const sn=ns.filter(n=>['Nota','Minuto a minuto','Enfoque','Artículos Exclusivos','Blog','Arte y Cultura'].includes(n.tipo));
+  const sn=ns.filter(n=>['Noticias','Minuto a minuto','Enfoque','Artículos Exclusivos','Blog','Arte y Cultura'].includes(n.tipo));
   const stotal=sn.length||1;
   qbars(document.getElementById('dash-seo'),{
     'Con subtítulos':sn.filter(n=>['H2','H3','H4','H5'].some(h=>(n.elementos||[]).includes(h))).length,
@@ -2517,7 +2706,7 @@ function renderDashboard(){
   }
 
   // Tabla resumen tipos
-  const TIPOS_O=['Titular UH','Nota','Arte y Cultura','Minuto a minuto','Artículos Exclusivos','Blog','Enfoque','Galería','Caricaturas','Historietas','Infografías','Video','Reels','Autores','Podcast','Cobertura'];
+  const TIPOS_O=['Titular UH','Noticias','Arte y Cultura','Minuto a minuto','Artículos Exclusivos','Blog','Enfoque','Galería','Caricaturas','Historietas','Infografías','Video','Reels','Autores','Podcast','Cobertura'];
   document.getElementById('dash-tabla-sub').textContent=total+' contenidos · '+days.length+' días';
   document.getElementById('dash-tipo-body').innerHTML=TIPOS_O.map(t=>{
     const tn=ns.filter(n=>n.tipo===t),cnt=tn.length;
@@ -2924,6 +3113,91 @@ function clearAllData(){
   updateStats(); updateDLs(); refreshCobSelects();
   renderSync();
   notify('Datos borrados','err');
+}
+
+
+// ══════════════════════════════════════════
+// MODAL DE TURNOS POR EDITOR
+// ══════════════════════════════════════════
+function openTurnoModal(editor, mes){
+  const modal=document.getElementById('turno-modal');
+  if(!modal) return;
+  document.getElementById('tm-editor').textContent=editor;
+  document.getElementById('tm-mes').textContent=mes||'';
+  // Load turnos for this editor/month
+  const ts=TURNOS.filter(t=>t.editor===editor&&(!mes||t.fecha.startsWith(mes)))
+    .sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  renderTurnoList(editor, ts);
+  modal.classList.add('open');
+}
+
+function renderTurnoList(editor, ts){
+  const el=document.getElementById('tm-list');
+  if(!el) return;
+  if(!ts.length){
+    el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:16px 0">No hay turnos registrados para este período.</div>';
+    return;
+  }
+  el.innerHTML=`<table class="dt" style="width:100%">
+    <thead><tr><th>Fecha</th><th>Tipo</th><th>Horas</th><th class="num">Notas</th><th class="num">Otros</th><th class="num">Total</th><th>Auto</th><th></th></tr></thead>
+    <tbody>${ts.map(t=>{
+      const dayNotes=NOTES.filter(n=>n.fecha===t.fecha&&n.editor===editor);
+      const notas=dayNotes.filter(n=>NOTE_TYPES.includes(n.tipo)).length;
+      const otros=dayNotes.filter(n=>!NOTE_TYPES.includes(n.tipo)).length;
+      const sem=t.tipo==='regular'?semaforo(notas,1):{color:'var(--text3)',label:'—'};
+      return `<tr>
+        <td style="white-space:nowrap">${fmtD(t.fecha)}</td>
+        <td><select onchange="updateTurno('${t.id}','tipo',this.value)" style="font-size:11px;border:1px solid var(--line2);border-radius:5px;padding:2px 4px;background:var(--bg)">
+          <option value="regular" ${t.tipo==='regular'?'selected':''}>Regular (8h)</option>
+          <option value="extra" ${t.tipo==='extra'?'selected':''}>Extra</option>
+        </select></td>
+        <td><input type="number" value="${t.horas||8}" min="1" max="24"
+          onchange="updateTurno('${t.id}','horas',+this.value)"
+          style="width:44px;font-size:11px;border:1px solid var(--line2);border-radius:5px;padding:2px 4px;background:var(--bg)"></td>
+        <td class="num" style="font-weight:700;color:var(--blue)">${notas}</td>
+        <td class="num">${otros}</td>
+        <td class="num" style="font-weight:700">${notas+otros}</td>
+        <td style="font-size:10px;color:var(--text3)">${t.autoDetected?'Auto':''}</td>
+        <td><button class="ic-btn del" onclick="deleteTurno('${t.id}')">✕</button></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+function updateTurno(id, key, val){
+  const t=TURNOS.find(x=>x.id===id);
+  if(!t) return;
+  t[key]=val;
+  t.autoDetected=false;
+  saveTurnos();
+}
+
+function deleteTurno(id){
+  TURNOS=TURNOS.filter(t=>t.id!==id);
+  saveTurnos();
+  notify('Turno eliminado','err');
+  // Re-render list
+  const editor=document.getElementById('tm-editor')?.textContent;
+  const mes=document.getElementById('tm-mes')?.textContent;
+  if(editor){
+    const ts=TURNOS.filter(t=>t.editor===editor&&(!mes||t.fecha.startsWith(mes))).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+    renderTurnoList(editor,ts);
+  }
+}
+
+function addTurnoManual(){
+  const editor=document.getElementById('tm-editor')?.textContent;
+  const fecha=document.getElementById('tm-new-fecha')?.value;
+  const tipo=document.getElementById('tm-new-tipo')?.value||'regular';
+  const horas=+(document.getElementById('tm-new-horas')?.value||8);
+  if(!editor||!fecha){notify('Falta fecha','err');return;}
+  if(TURNOS.find(t=>t.editor===editor&&t.fecha===fecha)){notify('Ya existe un turno para esta fecha','err');return;}
+  TURNOS.push({id:Date.now().toString(36),editor,fecha,tipo,horas,autoDetected:false,obs:''});
+  saveTurnos();
+  const mes=document.getElementById('tm-mes')?.textContent;
+  const ts=TURNOS.filter(t=>t.editor===editor&&(!mes||t.fecha.startsWith(mes))).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  renderTurnoList(editor,ts);
+  notify('Turno agregado ✓');
 }
 
 // ══════════════════════════════════════════
