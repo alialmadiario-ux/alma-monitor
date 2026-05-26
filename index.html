@@ -1429,7 +1429,7 @@ function importXLSX(file){
           if(!editor) continue;
 
           // Saltar duplicados por PostId
-          if(NOTES.some(n=>n.postId===rawPid)){totalSkipped++;continue;}
+          if(rawPid&&rawPid!=='0'&&NOTES.some(n=>n.postId===rawPid)){totalSkipped++;continue;}
 
           // Construir elementos solo con los que están marcados en el Excel
           const elementos=[];
@@ -1448,25 +1448,6 @@ function importXLSX(file){
 
           // Hora: puede ser objeto Date o string
           let horaVal=getS(row,C.hora);
-
-          // Si la fecha viene del campo Publish Date (CMS inglés), parsearla
-          // Formatos posibles: "25-05-2026", "2026-05-25", "2026-12-05 00:00:00"
-          if(!sheetDate||sheetDate===todayStr()){
-            const rawFecha=getS(row,C.fecha||ci('Publish Date')||ci('Fecha'));
-            if(rawFecha){
-              // Formato "DD-MM-YYYY"
-              const m1=rawFecha.match(/^(\d{1,2})-(\d{1,2})-(\d{4})/);
-              if(m1) sheetDate=`${m1[3]}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`;
-              // Formato "YYYY-MM-DD" o "YYYY-DD-MM 00:00:00"
-              const m2=rawFecha.match(/^(\d{4})-(\d{2})-(\d{2})/);
-              if(m2&&!m1){
-                // Determinar si es YYYY-MM-DD o YYYY-DD-MM
-                const month=parseInt(m2[2]), day=parseInt(m2[3]);
-                if(month>12) sheetDate=`${m2[1]}-${m2[3]}-${m2[2]}`; // era YYYY-DD-MM
-                else sheetDate=`${m2[1]}-${m2[2]}-${m2[3]}`;
-              }
-            }
-          }
 
           // Recursos: usar el del Excel si existe, sino contar elementos
           const recursosExcel=C.recursos>=0?getN(row,C.recursos):0;
@@ -1489,13 +1470,16 @@ function importXLSX(file){
               }
               return tipoDetectado;
             })(),
-            fecha:   (() => {
-              // Para exports del CMS, cada fila puede tener su propia fecha
+            fecha:   (()=>{
+              // Parsear fecha por fila desde Publish Date si existe
+              // NUNCA mutar sheetDate — usar variable local
               if(C.fecha>=0){
                 const rawF=getS(row,C.fecha);
-                if(rawF){
+                if(rawF&&rawF!==''&&rawF!=='nan'){
+                  // "DD-MM-YYYY" o "D-M-YYYY"
                   const m1=rawF.match(/^(\d{1,2})-(\d{1,2})-(\d{4})/);
                   if(m1) return `${m1[3]}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`;
+                  // "YYYY-MM-DD" o "YYYY-DD-MM HH:MM:SS"
                   const m2=rawF.match(/^(\d{4})-(\d{2})-(\d{2})/);
                   if(m2){
                     const mo=parseInt(m2[2]),da=parseInt(m2[3]);
@@ -1504,7 +1488,7 @@ function importXLSX(file){
                   }
                 }
               }
-              return sheetDate;
+              return sheetDate; // fallback: fecha de la hoja
             })(),
             hora:    horaVal,
             postId:  rawPid,
@@ -1758,7 +1742,7 @@ function saveNote(){
   mediaKeys.forEach(k=>{if(checkedEls.includes(k))autoRec++;});
   if(hTagsUsed.some(h=>checkedEls.includes(h)))autoRec++;
 
-  const nota={id:eid||Date.now().toString(),tipo,fecha,hora:gv('f-hora'),postId:gv('f-postid'),titulo,editor,autor:gv('f-autor'),recursos:autoRec,cat:gv('f-cat'),reg:gv('f-reg'),cob:gv('f-cob'),vistas:gn('f-vistas')||gn('f-gal-vis')||gn('f-img-vis'),gaPos:gv('f-ga-pos'),gaVis:gn('f-ga-vis'),gaInt:gv('f-ga-int'),ventana:gv('f-ventana'),vidPlat:gv('f-vid-plat'),vidDur:gv('f-vid-dur'),vidRep:gn('f-vid-rep'),vidLk:gn('f-vid-lk'),podDur:gv('f-pod-dur'),podEp:gv('f-pod-ep'),podRep:gn('f-pod-rep'),podPlat:gv('f-pod-plat'),galImgs:gn('f-gal-imgs'),galFt:gv('f-gal-ft'),galAg:gv('f-gal-ag'),imgTec:gv('f-img-tec'),imgArt:gv('f-img-art'),imgSer:gv('f-img-ser'),autNm:gv('f-aut-nm'),autCob:gv('f-aut-cob'),autArt:gn('f-aut-art'),autPct:gv('f-aut-pct'),cobLnk:gv('f-cob-lnk'),cobCor:gv('f-cob-cor'),cobDur:gv('f-cob-dur'),cobNot:gn('f-cob-not'),elementos:Array.from(document.querySelectorAll('#chks-el .chk.on')).map(c=>c.dataset.v),rrss:Array.from(document.querySelectorAll('.rc.on')).map(c=>c.dataset.v),obs:gv('f-obs')};
+  const nota={id:eid||Date.now().toString(),tipo,fecha,hora:gv('f-hora'),postId:gv('f-postid'),titulo,editor,autor:gv('f-autor'),recursos:autoRec,parrafos:gn('f-parrafos'),cat:gv('f-cat'),reg:gv('f-reg'),cob:gv('f-cob'),vistas:gn('f-vistas')||gn('f-gal-vis')||gn('f-img-vis'),gaPos:gv('f-ga-pos'),gaVis:gn('f-ga-vis'),gaInt:gv('f-ga-int'),ventana:gv('f-ventana'),vidPlat:gv('f-vid-plat'),vidDur:gv('f-vid-dur'),vidRep:gn('f-vid-rep'),vidLk:gn('f-vid-lk'),podDur:gv('f-pod-dur'),podEp:gv('f-pod-ep'),podRep:gn('f-pod-rep'),podPlat:gv('f-pod-plat'),galImgs:gn('f-gal-imgs'),galFt:gv('f-gal-ft'),galAg:gv('f-gal-ag'),imgTec:gv('f-img-tec'),imgArt:gv('f-img-art'),imgSer:gv('f-img-ser'),autNm:gv('f-aut-nm'),autCob:gv('f-aut-cob'),autArt:gn('f-aut-art'),autPct:gv('f-aut-pct'),cobLnk:gv('f-cob-lnk'),cobCor:gv('f-cob-cor'),cobDur:gv('f-cob-dur'),cobNot:gn('f-cob-not'),elementos:Array.from(document.querySelectorAll('#chks-el .chk.on')).map(c=>c.dataset.v),rrss:Array.from(document.querySelectorAll('.rc.on')).map(c=>c.dataset.v),obs:gv('f-obs')};
   if(eid){const i=NOTES.findIndex(n=>n.id===eid);if(i>=0)NOTES[i]=nota;notify('Actualizado ✓');}
   else{NOTES.push(nota);notify('Guardado ✓');}
   // Compute ventanas for the day after save
@@ -2371,7 +2355,7 @@ function renderAll(){
       </td>
       <td style="padding:4px 6px">${tagT(n.tipo)}</td>
       <td style="padding:4px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;color:var(--text)" title="${n.titulo}" onclick="editNote('${n.id}')">${n.titulo}</td>
-      <td style="padding:4px 8px;font-weight:700;color:var(--text);white-space:nowrap">${resolveEditorName(n.editor)}</td>
+      <td style="padding:4px 8px;font-weight:700;color:var(--text);white-space:nowrap">${n.editor}</td>
       ${ic('cat','',null,[''].concat(CATS))}
       ${ic('reg','',null,[''].concat(REGS))}
       ${ic('vistas','','number')}
