@@ -952,6 +952,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Lato',
         📂 Restaurar backup
         <input type="file" accept=".json" style="display:none" onchange="importJSON(this)">
       </label>
+      <div style="margin-top:8px;font-size:11px;color:var(--text3);padding:8px;background:rgba(158,100,8,.06);border-radius:6px;border:1px solid rgba(158,100,8,.2)">
+        ⚠ Si quieres reimportar un Excel desde cero, usa <b>Borrar todos los datos</b> primero — la página se recargará automáticamente y podrás importar sin duplicados.
+      </div>
     </div>
 
     <div class="card">
@@ -1242,6 +1245,7 @@ function importXLSX(file){
   reader.onload=function(e){
     try{
       const data=new Uint8Array(e.target.result);
+      const importedPids=new Set();
       const wb=XLSX.read(data,{type:'array',cellDates:true,raw:false});
       let totalImported=0, totalSkipped=0;
 
@@ -1428,8 +1432,13 @@ function importXLSX(file){
           const editor=getS(row,C.editor).replace(/\s+/g,' ');
           if(!editor) continue;
 
-          // Saltar duplicados por PostId
-          if(rawPid&&rawPid!=='0'&&NOTES.some(n=>n.postId===rawPid)){totalSkipped++;continue;}
+          // Saltar duplicados: contra datos existentes Y contra este mismo import
+          if(rawPid&&rawPid!=='0'){
+            if(NOTES.some(n=>n.postId===rawPid)||importedPids.has(rawPid)){
+              totalSkipped++;continue;
+            }
+            importedPids.add(rawPid);
+          }
 
           // Construir elementos solo con los que están marcados en el Excel
           const elementos=[];
@@ -1518,17 +1527,20 @@ function importXLSX(file){
       }); // fin forEach hoja
 
       if(totalImported>0){
-        // Recalcular ventanas por día
         [...new Set(NOTES.map(n=>n.fecha))].forEach(d=>computeVentanas(d));
         saveNotes();
-        // Mostrar el día más reciente importado en el panel
         const lastDay=[...new Set(NOTES.map(n=>n.fecha))].sort().reverse()[0]||todayStr();
         document.getElementById('panel-date').value=lastDay;
         renderPanel();
-        renderDashboard();
-        notify(`✓ ${totalImported} notas importadas`+(totalSkipped?` · ${totalSkipped} ya existían`:''));
+        if(document.getElementById('page-dashboard')?.classList.contains('active')) renderDashboard();
+        if(document.getElementById('page-notas')?.classList.contains('active')) renderAll();
+        let msg=`✓ ${totalImported} importadas`;
+        if(totalSkipped) msg+=` · ${totalSkipped} ya existían (omitidas)`;
+        notify(msg);
+      } else if(totalSkipped>0){
+        notify(`Todas las notas ya existen (${totalSkipped} omitidas). Si quieres reimportar, borra los datos primero desde Config → Sincronización.`,'err');
       } else {
-        notify('No se importaron notas. Verifica el formato del archivo.','err');
+        notify('No se encontraron notas válidas. Verifica el formato.','err');
       }
 
     }catch(err){
@@ -3276,11 +3288,12 @@ function clearAllData(){
   if(!confirm('¿Borrar TODOS los datos locales? Esta acción no se puede deshacer.\n\nHaz un backup primero.')) return;
   NOTES=[]; COBS=[]; REDS=[]; GA_DATA=[]; DIAS_COMPLETOS={};
   CRITERIOS=JSON.parse(JSON.stringify(DEFAULT_CRITERIOS));
-  ['notes','cobs','reds','ga','crit'].forEach(k=>localStorage.removeItem(DK[k]));
+  Object.values(DK).forEach(k=>localStorage.removeItem(k));
   localStorage.removeItem('alma_dias_completos');
-  updateStats(); updateDLs(); refreshCobSelects();
-  renderSync();
-  notify('Datos borrados','err');
+  localStorage.removeItem('alma_turnos_v1');
+  notify('Datos borrados — recargando…','err');
+  // Reload page so JS memory is also cleared
+  setTimeout(()=>location.reload(), 1200);
 }
 
 
